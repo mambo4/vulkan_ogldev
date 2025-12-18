@@ -2,11 +2,19 @@
 
 #include <vulkan/vulkan.h>
 
+/* UTILS **********************************************************************/
 
 #define CHECK_VK_RESULT(value, message) if (value != VK_SUCCESS) {\
      fprintf(stderr, "Error %s[%d]: %s(%x)\n", __FILE__, __LINE__, message, value);\
-     exit(1); }    
+     exit(1); }
 
+namespace m4VK {
+    const char* GetDebugSeverityStr(VkDebugUtilsMessageSeverityFlagBitsEXT Severity);
+
+    const char* GetDebugType(VkDebugUtilsMessageTypeFlagsEXT Type);     
+}
+
+/* CORE **********************************************************************/
 namespace m4VK
 {
     class VulkanCore
@@ -21,6 +29,12 @@ namespace m4VK
         private:
             void CreateInstance(const char* pAppName);
             VkInstance m_instance=nullptr;
+            VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
+            void CreateDebugCallback();
+            const char* GetDebugSeverityString(VkDebugUtilsMessageSeverityFlagBitsEXT severity);
+            const char* GetDebugType(VkDebugUtilsMessageTypeFlagsEXT type);
+            const char* GetObjectTypeString(VkObjectType type);
+
     };
 
 }
