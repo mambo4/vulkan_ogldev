@@ -29,9 +29,9 @@ class VulkanApp
         VulkanApp() {}
         ~VulkanApp() {}
 
-        void Init(const char* pAppName) 
+        void Init(const char* pAppName, GLFWwindow* pWindow) 
         {
-            m_vkCore.Init(pAppName);
+            m_vkCore.Init(pAppName, pWindow);
         }
         void RenderScene()
         {
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
 
     glfwSetKeyCallback(pWindow, GLFW_Key_Callback);
 
-    App.Init(APP_NAME);
+    App.Init(APP_NAME,pWindow);
 
     while (!glfwWindowShouldClose(pWindow))
     {

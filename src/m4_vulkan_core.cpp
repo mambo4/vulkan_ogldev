@@ -9,6 +9,13 @@ namespace m4VK
 
     VulkanCore::~VulkanCore()
     {
+
+        if (m_surface != VK_NULL_HANDLE)
+        {
+            vkDestroySurfaceKHR(m_instance, m_surface, VK_NULL_HANDLE);
+            printf("Vulkan Surface Destroyed\n");
+        }
+
         if (m_debugMessenger != VK_NULL_HANDLE)
         {
             PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessenger = VK_NULL_HANDLE;
@@ -22,10 +29,11 @@ namespace m4VK
         printf("Vulkan Instance Destroyed\n");
     }
 
-    void VulkanCore::Init(const char* pAppName)
+    void VulkanCore::Init(const char* pAppName, GLFWwindow* pWindow)
     {
         CreateInstance(pAppName);
         CreateDebugCallback();
+        CreateSurface(pWindow);
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -165,4 +173,11 @@ namespace m4VK
         printf("Debug Utils Messenger Created Successfully\n");
     }
 
+
+    void VulkanCore::CreateSurface(GLFWwindow* pWindow)
+    {
+        VkResult result = glfwCreateWindowSurface(m_instance, pWindow, nullptr, &m_surface);
+        CHECK_VK_RESULT(result, "Create surface");
+        printf("Vulkan Surface Created Successfully\n");
+    }
 }

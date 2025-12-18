@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <glfw3.h>
 
 /* UTILS **********************************************************************/
 
@@ -23,14 +24,16 @@ namespace m4VK
             VulkanCore();
             ~VulkanCore();
 
-            void Init(const char* pAppName);
+            void Init(const char* pAppName, GLFWwindow* pWindow);
 
 
         private:
             void CreateInstance(const char* pAppName);
-            VkInstance m_instance=nullptr;
+            VkInstance m_instance = VK_NULL_HANDLE;
+            VkSurfaceKHR m_surface = VK_NULL_HANDLE;
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
             void CreateDebugCallback();
+            void CreateSurface(GLFWwindow* pWindow);
             const char* GetDebugSeverityString(VkDebugUtilsMessageSeverityFlagBitsEXT severity);
             const char* GetDebugType(VkDebugUtilsMessageTypeFlagsEXT type);
             const char* GetObjectTypeString(VkObjectType type);
