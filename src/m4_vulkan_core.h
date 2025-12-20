@@ -21,6 +21,7 @@ namespace m4VK
             void CreateDebugCallback();
             void CreateSurface();
             void CreateDevice();
+            void CreateSwapChain();
 
             VkInstance m_instance = VK_NULL_HANDLE;
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
@@ -29,11 +30,9 @@ namespace m4VK
             VulkanPhysicalDevices m_physicalDevices;
             uint32_t m_queueFamilyIndex = 0;
             VkDevice m_device;
-
-            // OGL puts these in a "utils" header
-            const char* GetDebugSeverityString(VkDebugUtilsMessageSeverityFlagBitsEXT severity);
-            const char* GetDebugType(VkDebugUtilsMessageTypeFlagsEXT type);
-            const char* GetObjectTypeString(VkObjectType type);
+            VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+            std::vector<VkImage> m_swapChainImages; 
+            std::vector<VkImageView> m_swapChainImageViews;
 
     };
 

@@ -39,6 +39,17 @@ namespace m4VK
     {
         M4_LOG("\n----------- destructor ~VulkanCore() --------------");
 
+
+        for (int i=0;i<m_swapChainImageViews.size();i++)
+        {
+            vkDestroyImageView(m_device, m_swapChainImageViews[i], VK_NULL_HANDLE);
+            M4_LOG("vkDestroyImageView[%d]",i  );
+        }
+
+        vkDestroySwapchainKHR(m_device, m_swapChain, VK_NULL_HANDLE);
+        M4_LOG("vkDestroySwapchainKHR");
+
+
         vkDestroyDevice(m_device, VK_NULL_HANDLE);
         M4_LOG("vkDestroyDevice");
 
@@ -73,6 +84,7 @@ namespace m4VK
         m_physicalDevices.Init(m_instance, m_surface);
         m_queueFamilyIndex =  m_physicalDevices.SelectPhysicalDevice(VK_QUEUE_GRAPHICS_BIT, true);
         CreateDevice();
+        CreateSwapChain();
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -165,8 +177,6 @@ namespace m4VK
         M4_LOG("Vulkan Surface Created Successfully");
     }
 
-
-
     void VulkanCore::CreateDevice()
     {
 
@@ -212,4 +222,138 @@ namespace m4VK
         CHECK_VK_RESULT(result, "Create device");
         M4_LOG("Vulkan  Device Created Successfully");
     }   
+
+    static VkPresentModeKHR ChoosePresentMode(const std::vector<VkPresentModeKHR>& availableModes)
+    {
+        for (const auto& availableMode : availableModes)
+        {
+            if (availableMode == VK_PRESENT_MODE_MAILBOX_KHR)// mailbox mode made things waaay to fast in a prev tutorial
+            {
+                return availableMode;
+            }
+        }
+
+        return VK_PRESENT_MODE_FIFO_KHR;
+    }
+
+    static uint32_t ChooseNumImages(const VkSurfaceCapabilitiesKHR& capabilities)
+    {
+        uint32_t requestedNumImages = capabilities.minImageCount + 1;
+        int finalNumImages=0;
+        if( (capabilities.maxImageCount>0) && ( requestedNumImages > capabilities.maxImageCount +1) ){
+            finalNumImages = capabilities.maxImageCount;
+        }
+        else{
+            finalNumImages = requestedNumImages;
+        }
+        return finalNumImages;
+    }
+
+    static VkSurfaceFormatKHR ChooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+    {
+        for (const auto& availableFormat : availableFormats)
+        {
+            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            {
+                return availableFormat;
+            }
+        }
+
+        return availableFormats[0];
+    }
+
+    VkImageView CreateImageView( 
+        VkDevice device, 
+        VkImage image, 
+        VkFormat format, 
+        VkImageAspectFlags imageViewAspectFlags, 
+        VkImageViewType viewType,
+        uint32_t layerCount,
+        uint32_t mipLevels)
+    {
+        VkImageViewCreateInfo imageViewCreateInfo = {};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.pNext = VK_NULL_HANDLE;
+        imageViewCreateInfo.flags = 0;
+        imageViewCreateInfo.image = image;
+        imageViewCreateInfo.viewType = viewType;
+        imageViewCreateInfo.format = format;
+        imageViewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        imageViewCreateInfo.subresourceRange.aspectMask = imageViewAspectFlags;
+        imageViewCreateInfo.subresourceRange.baseMipLevel = 0;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.baseArrayLayer = 0;
+        imageViewCreateInfo.subresourceRange.layerCount = layerCount;
+
+        VkImageView imageView;
+        VkResult result = vkCreateImageView(device, &imageViewCreateInfo, VK_NULL_HANDLE, &imageView);
+        CHECK_VK_RESULT(result, "Create image view");
+        return imageView;
+    }
+
+    void VulkanCore::CreateSwapChain()
+    {
+        const VkSurfaceCapabilitiesKHR& surfaceCapabilities = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities;
+        uint32_t numSurfaceImages = ChooseNumImages(surfaceCapabilities);
+
+        const std::vector<VkPresentModeKHR>& presentModes = m_physicalDevices.GetSelectedDevice().m_presentModes;
+        VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
+
+        VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(m_physicalDevices.GetSelectedDevice().m_surfaceFormats);
+        
+        VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
+        swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+        swapChainCreateInfo.pNext = VK_NULL_HANDLE;
+        swapChainCreateInfo.flags = 0;
+        swapChainCreateInfo.surface = m_surface;
+        swapChainCreateInfo.minImageCount = numSurfaceImages;
+        swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
+        swapChainCreateInfo.imageFormat = surfaceFormat.format;
+        swapChainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
+        swapChainCreateInfo.imageArrayLayers = 1;
+        swapChainCreateInfo.imageUsage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+        swapChainCreateInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        swapChainCreateInfo.queueFamilyIndexCount = 1;
+        swapChainCreateInfo.pQueueFamilyIndices = &m_queueFamilyIndex;
+        swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
+        swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        swapChainCreateInfo.presentMode = presentMode;
+        swapChainCreateInfo.clipped = VK_TRUE;
+        swapChainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
+
+        VkResult result = vkCreateSwapchainKHR(m_device, &swapChainCreateInfo, VK_NULL_HANDLE, &m_swapChain);
+        CHECK_VK_RESULT(result, "Create swap chain");
+        M4_LOG("Vulkan Swap Chain Created Successfully");
+
+        uint32_t swapchainImageCount = 0;
+        result=vkGetSwapchainImagesKHR(m_device, m_swapChain, &swapchainImageCount, nullptr);
+        CHECK_VK_RESULT(result, "Get swap chain images count");
+        assert(numSurfaceImages == swapchainImageCount);
+        M4_LOG("swapchainImageCount:%d",swapchainImageCount);
+
+        m_swapChainImages.resize(swapchainImageCount);
+        m_swapChainImageViews.resize(swapchainImageCount);
+
+        result=vkGetSwapchainImagesKHR(m_device, m_swapChain, &swapchainImageCount, m_swapChainImages.data());
+        CHECK_VK_RESULT(result, "Get swap chain images");
+
+        int layerCount=1;
+        int mipLevels=1;
+
+        for (uint32_t i = 0; i < swapchainImageCount; i++)
+        {
+            m_swapChainImageViews[i] = CreateImageView(
+                m_device, 
+                m_swapChainImages[i], 
+                surfaceFormat.format,
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_VIEW_TYPE_2D,
+                layerCount,
+                mipLevels);
+            M4_LOG("CreateImageView[%d]",i);
+        }
+    }
 }
