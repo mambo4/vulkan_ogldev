@@ -8,7 +8,7 @@ namespace m4VK {
     struct PhysicalDevice {
         VkPhysicalDevice m_physicalDevice;
         VkPhysicalDeviceProperties m_deviceProperties;
-        // VkPhysicalDeviceFeatures m_deviceFeatures;s
+        VkPhysicalDeviceFeatures m_deviceFeatures;
         std::vector<VkQueueFamilyProperties> m_queueFamilyProperties;
         // std::vector<VkExtensionProperties> m_ExtensionProperties;
         std::vector<VkBool32> m_queueFamilySupportsPresent;
@@ -24,7 +24,7 @@ namespace m4VK {
         ~VulkanPhysicalDevices() {}
 
         void Init(const VkInstance& instance, const VkSurfaceKHR& surface);
-        uint32_t SelectDevice(VkQueueFlags RequiredQueueType, bool SupportsPresent);
+        uint32_t SelectPhysicalDevice(VkQueueFlags RequiredQueueType, bool SupportsPresent);
         const PhysicalDevice& GetSelectedDevice() const;
 
     private:

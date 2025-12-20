@@ -160,11 +160,13 @@ namespace m4VK {
             }
             printf("Memory Heaps: %d\n", m_physicalDevices[i].m_deviceMemoryProperties.memoryHeapCount);
             printf("\n");
+
+            vkGetPhysicalDeviceFeatures(physicalDevice, &m_physicalDevices[i].m_deviceFeatures);
         }
         // exit(0);
     }
 
-    uint32_t VulkanPhysicalDevices::SelectDevice(VkQueueFlags RequiredQueueType, bool SupportsPresent){
+    uint32_t VulkanPhysicalDevices::SelectPhysicalDevice(VkQueueFlags RequiredQueueType, bool SupportsPresent){
         for(uint32_t i=0; i<m_physicalDevices.size(); i++) {
 
             for(uint32_t j=0; j<m_physicalDevices[i].m_queueFamilyProperties.size(); j++) {

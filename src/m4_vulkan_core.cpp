@@ -37,7 +37,10 @@ namespace m4VK
 
     VulkanCore::~VulkanCore()
     {
-         M4_LOG("\n----------- destructor ~VulkanCore() --------------");
+        M4_LOG("\n----------- destructor ~VulkanCore() --------------");
+
+        vkDestroyDevice(m_device, VK_NULL_HANDLE);
+        M4_LOG("vkDestroyDevice");
 
         if (m_surface != VK_NULL_HANDLE)
         {
@@ -68,7 +71,8 @@ namespace m4VK
         CreateDebugCallback();
         CreateSurface();
         m_physicalDevices.Init(m_instance, m_surface);
-        m_queueFamilyIndex =  m_physicalDevices.SelectDevice(VK_QUEUE_GRAPHICS_BIT, true);
+        m_queueFamilyIndex =  m_physicalDevices.SelectPhysicalDevice(VK_QUEUE_GRAPHICS_BIT, true);
+        CreateDevice();
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -160,4 +164,52 @@ namespace m4VK
         CHECK_VK_RESULT(result, "Create surface");
         M4_LOG("Vulkan Surface Created Successfully");
     }
+
+
+
+    void VulkanCore::CreateDevice()
+    {
+
+        std::vector<const char*> deviceExtensions={
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME
+        };
+
+        VkPhysicalDeviceFeatures DeviceFeatures = {0};
+        DeviceFeatures.geometryShader = VK_TRUE;
+        DeviceFeatures.tessellationShader = VK_TRUE;
+        // DeviceFeatures.multiDrawIndirect = VK_TRUE;
+
+        if( m_physicalDevices.GetSelectedDevice().m_deviceFeatures.geometryShader == VK_FALSE ){
+            M4_ERROR("Geometry Shader unsupported");
+        }
+
+        if(m_physicalDevices.GetSelectedDevice().m_deviceFeatures.tessellationShader == VK_FALSE){
+            M4_ERROR("Tessellation Shader unsupported");
+        }
+
+
+        VkDeviceQueueCreateInfo queueCreateInfo = {};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.pNext = VK_NULL_HANDLE;
+        queueCreateInfo.queueFamilyIndex = m_queueFamilyIndex;
+        queueCreateInfo.queueCount = 1;
+        float queuePriorities[] = { 1.0f };
+        queueCreateInfo.pQueuePriorities = &queuePriorities[0];
+
+        VkDeviceCreateInfo deviceCreateInfo = {};
+        deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        deviceCreateInfo.pNext = VK_NULL_HANDLE;
+        deviceCreateInfo.queueCreateInfoCount = 1;
+        deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+        deviceCreateInfo.enabledLayerCount = 0; // Layers are deprecated
+        deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;// Layers are deprecated
+        deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+        deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+        deviceCreateInfo.pEnabledFeatures = &DeviceFeatures; // Use VkPhysicalDeviceFeatures2 for more advanced features
+
+        VkResult result = vkCreateDevice(m_physicalDevices.GetSelectedDevice().m_physicalDevice, &deviceCreateInfo, VK_NULL_HANDLE, &m_device);
+        CHECK_VK_RESULT(result, "Create device");
+        M4_LOG("Vulkan  Device Created Successfully");
+    }   
 }
