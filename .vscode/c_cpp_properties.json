@@ -11,7 +11,7 @@
                "${workspaceFolder}/lib/glm",
                "${workspaceFolder}/lib/tinyobjloader",
                "${workspaceFolder}/lib/stb",
-               "C:/VulkanSDK/1.4.328.1/Include"
+               "${env:VULKAN_SDK}/Include"
             ],
             "defines": [
                 "_WIN32",
