@@ -14,7 +14,9 @@ namespace m4VK
             ~VulkanCore();
 
             void Init(const char* pAppName, GLFWwindow* pWindow);
-
+            int GetSwapchainImageCount() const { return (int)m_swapChainImages.size(); }
+            void CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
+            void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
 
         private:
             void CreateInstance(const char* pAppName);
@@ -22,6 +24,8 @@ namespace m4VK
             void CreateSurface();
             void CreateDevice();
             void CreateSwapChain();
+            void CreateCommandBufferPool();
+
 
             VkInstance m_instance = VK_NULL_HANDLE;
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
@@ -30,10 +34,11 @@ namespace m4VK
             VulkanPhysicalDevices m_physicalDevices;
             uint32_t m_queueFamilyIndex = 0;
             VkDevice m_device;
+            VkSurfaceFormatKHR m_swapChainSurfaceFormat;
             VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
             std::vector<VkImage> m_swapChainImages; 
             std::vector<VkImageView> m_swapChainImageViews;
-
+            VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
     };
 
 }

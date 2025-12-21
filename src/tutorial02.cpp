@@ -32,12 +32,23 @@ class VulkanApp
         void Init(const char* pAppName, GLFWwindow* pWindow) 
         {
             m_vkCore.Init(pAppName, pWindow);
+            m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
+            CreateCommandBuffers();
         }
         void RenderScene()
         {
         }
     private:
+
+        void CreateCommandBuffers()
+        {
+            m_commandBuffers.resize(m_numSwapchainImages);
+            m_vkCore.CreateCommandBuffers(m_numSwapchainImages, m_commandBuffers.data());
+        }
+
         m4VK::VulkanCore m_vkCore;
+        int m_numSwapchainImages = 0;
+        std::vector<VkCommandBuffer> m_commandBuffers;
 };
 
 int main(int argc, char* argv[])

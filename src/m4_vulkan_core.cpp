@@ -39,6 +39,8 @@ namespace m4VK
     {
         M4_LOG("\n----------- destructor ~VulkanCore() --------------");
 
+        vkDestroyCommandPool(m_device, m_commandBufferPool, NULL);
+        M4_LOG("vkDestroyCommandPool");
 
         for (int i=0;i<m_swapChainImageViews.size();i++)
         {
@@ -85,6 +87,7 @@ namespace m4VK
         m_queueFamilyIndex =  m_physicalDevices.SelectPhysicalDevice(VK_QUEUE_GRAPHICS_BIT, true);
         CreateDevice();
         CreateSwapChain();
+        CreateCommandBufferPool();
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -236,7 +239,7 @@ namespace m4VK
         return VK_PRESENT_MODE_FIFO_KHR;
     }
 
-    static uint32_t ChooseNumImages(const VkSurfaceCapabilitiesKHR& capabilities)
+    static uint32_t ChooseImageCount(const VkSurfaceCapabilitiesKHR& capabilities)
     {
         uint32_t requestedNumImages = capabilities.minImageCount + 1;
         int finalNumImages=0;
@@ -261,6 +264,7 @@ namespace m4VK
 
         return availableFormats[0];
     }
+
 
     VkImageView CreateImageView( 
         VkDevice device, 
@@ -297,21 +301,20 @@ namespace m4VK
     void VulkanCore::CreateSwapChain()
     {
         const VkSurfaceCapabilitiesKHR& surfaceCapabilities = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities;
-        uint32_t numSurfaceImages = ChooseNumImages(surfaceCapabilities);
+        uint32_t numSurfaceImages = ChooseImageCount(surfaceCapabilities);
 
         const std::vector<VkPresentModeKHR>& presentModes = m_physicalDevices.GetSelectedDevice().m_presentModes;
         VkPresentModeKHR presentMode = ChoosePresentMode(presentModes);
 
-        VkSurfaceFormatKHR surfaceFormat = ChooseSurfaceFormat(m_physicalDevices.GetSelectedDevice().m_surfaceFormats);
-        
+        m_swapChainSurfaceFormat = ChooseSurfaceFormat(m_physicalDevices.GetSelectedDevice().m_surfaceFormats);
         VkSwapchainCreateInfoKHR swapChainCreateInfo = {};
         swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapChainCreateInfo.pNext = VK_NULL_HANDLE;
         swapChainCreateInfo.flags = 0;
         swapChainCreateInfo.surface = m_surface;
         swapChainCreateInfo.minImageCount = numSurfaceImages;
-        swapChainCreateInfo.imageColorSpace = surfaceFormat.colorSpace;
-        swapChainCreateInfo.imageFormat = surfaceFormat.format;
+        swapChainCreateInfo.imageColorSpace = m_swapChainSurfaceFormat.colorSpace;
+        swapChainCreateInfo.imageFormat = m_swapChainSurfaceFormat.format;
         swapChainCreateInfo.imageExtent = surfaceCapabilities.currentExtent;
         swapChainCreateInfo.imageArrayLayers = 1;
         swapChainCreateInfo.imageUsage = (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -348,7 +351,7 @@ namespace m4VK
             m_swapChainImageViews[i] = CreateImageView(
                 m_device, 
                 m_swapChainImages[i], 
-                surfaceFormat.format,
+                m_swapChainSurfaceFormat.format,
                 VK_IMAGE_ASPECT_COLOR_BIT,
                 VK_IMAGE_VIEW_TYPE_2D,
                 layerCount,
@@ -356,4 +359,37 @@ namespace m4VK
             M4_LOG("CreateImageView[%d]",i);
         }
     }
+
+    void VulkanCore::CreateCommandBufferPool()
+    {
+        VkCommandPoolCreateInfo poolInfo = {};
+        poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+        poolInfo.pNext = VK_NULL_HANDLE;
+        poolInfo.flags = 0;//VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+        poolInfo.queueFamilyIndex = m_queueFamilyIndex;
+
+        VkResult result = vkCreateCommandPool(m_device, &poolInfo, VK_NULL_HANDLE, &m_commandBufferPool);
+        CHECK_VK_RESULT(result, "vkCreateCommandPool");
+        M4_LOG("Vulkan Command Pool Created Successfully");
+    }
+
+    void VulkanCore::CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers)
+    {
+
+        VkCommandBufferAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.pNext = VK_NULL_HANDLE;
+        allocInfo.commandPool = m_commandBufferPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = commandBufferCount;
+
+        VkResult result = vkAllocateCommandBuffers(m_device, &allocInfo, pCommandBuffers);
+        CHECK_VK_RESULT(result, "vkAllocateCommandBuffers");
+        M4_LOG("Vulkan Command Buffers Created Successfully");
+    }
+
+    void VulkanCore::FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers)
+    {
+        vkFreeCommandBuffers(m_device, m_commandBufferPool, commandBufferCount, pCommandBuffers);
+    }   
 }
