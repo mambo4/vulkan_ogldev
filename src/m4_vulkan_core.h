@@ -15,6 +15,7 @@ namespace m4VK
 
             void Init(const char* pAppName, GLFWwindow* pWindow);
             int GetSwapchainImageCount() const { return (int)m_swapChainImages.size(); }
+            VkImage GetSwapchainImage(uint32_t imageIndex) const { return m_swapChainImages[imageIndex]; }
             void CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
             void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
 
@@ -25,7 +26,6 @@ namespace m4VK
             void CreateDevice();
             void CreateSwapChain();
             void CreateCommandBufferPool();
-
 
             VkInstance m_instance = VK_NULL_HANDLE;
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
