@@ -42,6 +42,8 @@ namespace m4VK
         vkDestroyCommandPool(m_device, m_commandBufferPool, NULL);
         M4_LOG("vkDestroyCommandPool");
 
+        m_queue.Destroy();
+        
         for (int i=0;i<m_swapChainImageViews.size();i++)
         {
             vkDestroyImageView(m_device, m_swapChainImageViews[i], VK_NULL_HANDLE);
@@ -88,6 +90,7 @@ namespace m4VK
         CreateDevice();
         CreateSwapChain();
         CreateCommandBufferPool();
+        m_queue.Init(m_device, m_swapChain, m_queueFamilyIndex, 0);
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)

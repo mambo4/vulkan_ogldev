@@ -33,11 +33,18 @@ class VulkanApp
         {
             m_vkCore.Init(pAppName, pWindow);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
+            m_pQueue = m_vkCore.GetQueue();
             CreateCommandBuffers();
+            RecordCommandBuffers();
         }
+        
         void RenderScene()
         {
+            uint32_t imageIndex = m_pQueue->AcquireNextImage();
+            m_pQueue->SubmitCommandBufferAsync(m_commandBuffers[imageIndex]);
+            m_pQueue->PresentImage(imageIndex); 
         }
+
     private:
 
         void CreateCommandBuffers()
@@ -49,7 +56,7 @@ class VulkanApp
         void RecordCommandBuffers()
         {
 
-            VkClearColorValue clearColor = {  0.0f, 0.0f, 0.0f, 1.0f  };
+            VkClearColorValue clearColor = {  0.05f, 0.05f, 0.1f, 1.0f  };
 
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -58,12 +65,13 @@ class VulkanApp
             subresourceRange.baseArrayLayer = 0;
             subresourceRange.layerCount = 1;
 
+
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
                 VkCommandBufferBeginInfo beginInfo = {};
                 beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
                 beginInfo.pNext = VK_NULL_HANDLE;
-                beginInfo.flags = 0; //VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+                beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
                 beginInfo.pInheritanceInfo = VK_NULL_HANDLE;
 
                 VkResult result = vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo);
@@ -78,8 +86,10 @@ class VulkanApp
         }
 
         m4VK::VulkanCore m_vkCore;
+        m4VK::VulkanQueue* m_pQueue = VK_NULL_HANDLE;
         int m_numSwapchainImages = 0;
         std::vector<VkCommandBuffer> m_commandBuffers;
+        
 };
 
 int main(int argc, char* argv[])

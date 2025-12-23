@@ -2,6 +2,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include "m4_vulkan_utils.h"
 #include "m4_vulkan_device.h"
+#include "m4_vulkan_queue.h"
 #include <vulkan/vulkan.h>
 #include <glfw3.h>
 
@@ -16,6 +17,7 @@ namespace m4VK
             void Init(const char* pAppName, GLFWwindow* pWindow);
             int GetSwapchainImageCount() const { return (int)m_swapChainImages.size(); }
             VkImage GetSwapchainImage(uint32_t imageIndex) const { return m_swapChainImages[imageIndex]; }
+            VulkanQueue* GetQueue() { return &m_queue; }
             void CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
             void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
 
@@ -31,14 +33,15 @@ namespace m4VK
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
             GLFWwindow* m_pWindow = VK_NULL_HANDLE;
             VkSurfaceKHR m_surface = VK_NULL_HANDLE;
-            VulkanPhysicalDevices m_physicalDevices;
+            VulkanPhysicalDevices m_physicalDevices;    
             uint32_t m_queueFamilyIndex = 0;
             VkDevice m_device;
             VkSurfaceFormatKHR m_swapChainSurfaceFormat;
-            VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+            VkSwapchainKHR m_swapChain   = VK_NULL_HANDLE;
             std::vector<VkImage> m_swapChainImages; 
             std::vector<VkImageView> m_swapChainImageViews;
             VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
+            VulkanQueue m_queue;
     };
 
 }
