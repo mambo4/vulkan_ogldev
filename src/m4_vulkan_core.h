@@ -16,10 +16,13 @@ namespace m4VK
 
             void Init(const char* pAppName, GLFWwindow* pWindow);
             int GetSwapchainImageCount() const { return (int)m_swapChainImages.size(); }
+            VkDevice GetDevice() const { return m_device; }//?need const?
             VkImage GetSwapchainImage(uint32_t imageIndex) const { return m_swapChainImages[imageIndex]; }
             VulkanQueue* GetQueue() { return &m_queue; }
             void CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
             void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
+            VkRenderPass CreateRenderPassSimple();
+            std::vector<VkFramebuffer>CreateFrameBuffers(VkRenderPass renderPass);
 
         private:
             void CreateInstance(const char* pAppName);
@@ -40,8 +43,10 @@ namespace m4VK
             VkSwapchainKHR m_swapChain   = VK_NULL_HANDLE;
             std::vector<VkImage> m_swapChainImages; 
             std::vector<VkImageView> m_swapChainImageViews;
+            std::vector<VkFramebuffer>m_frameBuffers;
             VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
             VulkanQueue m_queue;
+            
     };
 
 }

@@ -20,16 +20,15 @@ namespace m4VK
         const VkDebugUtilsMessengerCallbackDataEXT*      pCallbackData,
         void*                                            pUserData)
     {
-        M4_LOG("Debug Callback: %s", pCallbackData->pMessage);
-        M4_LOG("\tSeverity:%s", GetDebugSeverityString(messageSeverity));
-        M4_LOG("\tType:%s", GetDebugType(messageTypes));
+        M4_LOG("\n***** %s(%s) ************************************************************", GetDebugSeverityString(messageSeverity)    , GetDebugType(messageTypes));
+        M4_LOG("%s", pCallbackData->pMessage);
 
         for (uint32_t i = 0; i < pCallbackData->objectCount; i++)
         {
             const VkDebugUtilsObjectNameInfoEXT& obj = pCallbackData->pObjects[i];
             M4_LOG("\tObjects[%d]: %s:0x%llx ", i,GetObjectTypeString(obj.objectType), (unsigned long long)obj.objectHandle);
         }
-
+        M4_LOG("************************************************************\n");
         return VK_FALSE;// The calling function should not be aborted
     }
 
@@ -38,6 +37,11 @@ namespace m4VK
     VulkanCore::~VulkanCore()
     {
         M4_LOG("\n----------- destructor ~VulkanCore() --------------");
+
+        for (int i=0;i<m_frameBuffers.size();i++){
+            vkDestroyFramebuffer(m_device, m_frameBuffers[i], VK_NULL_HANDLE);
+            M4_LOG("vkDestroyFramebuffer[%d]",i  );
+        }
 
         vkDestroyCommandPool(m_device, m_commandBufferPool, NULL);
         M4_LOG("vkDestroyCommandPool");
@@ -81,6 +85,8 @@ namespace m4VK
 
     void VulkanCore::Init(const char* pAppName, GLFWwindow* pWindow)
     {
+        M4_LOG("\n===================================================\n");
+        M4_LOG("-----------  VulkanCore::Init() --------------\n");
         m_pWindow = pWindow;
         CreateInstance(pAppName);
         CreateDebugCallback();
@@ -114,9 +120,9 @@ namespace m4VK
         messengerCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         messengerCreateInfo.pNext = VK_NULL_HANDLE; 
         messengerCreateInfo.flags = 0;
-        messengerCreateInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+        messengerCreateInfo.messageSeverity =//VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                   VK_DEBUG_REPORT_INFORMATION_BIT_EXT|
+                                //    VK_DEBUG_REPORT_INFORMATION_BIT_EXT|
                                    VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT; 
         messengerCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                  VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | 
@@ -145,7 +151,7 @@ namespace m4VK
 
         VkResult result = vkCreateInstance(&instanceCreateInfo, VK_NULL_HANDLE, &m_instance);
         CHECK_VK_RESULT(result, "Create instance");
-        M4_LOG("Vulkan Instance Created Successfull");
+        M4_LOG("-------- Vulkan Instance Created Successfully --------");
     }
 
     void VulkanCore::CreateDebugCallback()
@@ -394,5 +400,70 @@ namespace m4VK
     void VulkanCore::FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers)
     {
         vkFreeCommandBuffers(m_device, m_commandBufferPool, commandBufferCount, pCommandBuffers);
+    }  
+
+    VkRenderPass VulkanCore::CreateRenderPassSimple()
+    {
+        VkAttachmentDescription colorAttachment = {};
+        colorAttachment.format = m_swapChainSurfaceFormat.format;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+        VkAttachmentReference colorAttachmentRef = {};
+        colorAttachmentRef.attachment = 0;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpassDescription = {}; //make sure everything else init'd null or 0
+        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpassDescription.colorAttachmentCount = 1;
+        subpassDescription.pColorAttachments = &colorAttachmentRef;
+
+        VkRenderPassCreateInfo renderPassInfo = {};
+        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        renderPassInfo.pNext = VK_NULL_HANDLE;
+        renderPassInfo.attachmentCount = 1;
+        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.subpassCount = 1;
+        renderPassInfo.pSubpasses = &subpassDescription;
+
+        VkRenderPass renderPass;
+        VkResult result = vkCreateRenderPass(m_device, &renderPassInfo, VK_NULL_HANDLE, &renderPass);
+        CHECK_VK_RESULT(result, "vkCreateRenderPass");
+        M4_LOG("Vulkan Render Pass Created Successfully");
+
+        return renderPass;
     }   
+
+    std::vector<VkFramebuffer>VulkanCore::CreateFrameBuffers(VkRenderPass renderPass){
+
+        m_frameBuffers.resize(m_swapChainImages.size());
+
+        int width = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.width;
+        int height = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.height;
+
+        VkFramebufferCreateInfo framebufferInfo = {};
+            framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.pNext = VK_NULL_HANDLE;
+            framebufferInfo.renderPass = renderPass;
+            framebufferInfo.attachmentCount = 1;
+            framebufferInfo.pAttachments = VK_NULL_HANDLE;
+            framebufferInfo.width = width;
+            framebufferInfo.height = height;
+            framebufferInfo.layers = 1; 
+
+        for (uint32_t i = 0; i < m_swapChainImages.size(); i++)
+        {
+            framebufferInfo.pAttachments = &m_swapChainImageViews[i] ;
+
+            VkResult result = vkCreateFramebuffer(m_device, &framebufferInfo, VK_NULL_HANDLE, &m_frameBuffers[i]);
+            CHECK_VK_RESULT(result, "vkCreateFramebuffer");
+            M4_LOG("Vulkan Framebuffer Created Successfully");
+        }
+        return m_frameBuffers;
+    }
 }

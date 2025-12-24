@@ -27,13 +27,18 @@ class VulkanApp
 {
     public:
         VulkanApp() {}
-        ~VulkanApp() {}
+        ~VulkanApp() {
+            m_vkCore.FreeCommandBuffers((uint32_t)m_commandBuffers.size(), m_commandBuffers.data());
+            vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
+        }
 
         void Init(const char* pAppName, GLFWwindow* pWindow) 
         {
             m_vkCore.Init(pAppName, pWindow);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
             m_pQueue = m_vkCore.GetQueue();
+            m_renderPass=m_vkCore.CreateRenderPassSimple();
+            m_frameBuffers=m_vkCore.CreateFrameBuffers(m_renderPass);
             CreateCommandBuffers();
             RecordCommandBuffers();
         }
@@ -57,6 +62,21 @@ class VulkanApp
         {
 
             VkClearColorValue clearColor = {  0.05f, 0.05f, 0.1f, 1.0f  };
+            VkClearValue clearValue;
+            clearValue.color = clearColor;
+
+            VkRenderPassBeginInfo renderPassBeginInfo = {};
+            renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassBeginInfo.pNext = VK_NULL_HANDLE;
+            renderPassBeginInfo.renderPass = m_renderPass;
+            renderPassBeginInfo.renderArea.offset.x = 0;
+            renderPassBeginInfo.renderArea.offset.y = 0;
+            renderPassBeginInfo.renderArea.extent.width = WINDOW_WIDTH;
+            renderPassBeginInfo.renderArea.extent.height = WINDOW_HEIGHT;
+            renderPassBeginInfo.clearValueCount = 1;
+            renderPassBeginInfo.pClearValues = &clearValue;
+
+
 
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -68,29 +88,6 @@ class VulkanApp
 
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
-                VkImageMemoryBarrier presentToClearBarrier = {};//prev to current image
-                presentToClearBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                presentToClearBarrier.pNext = VK_NULL_HANDLE;
-                presentToClearBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                presentToClearBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                presentToClearBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                presentToClearBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                presentToClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                presentToClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                presentToClearBarrier.image = m_vkCore.GetSwapchainImage(i);
-                presentToClearBarrier.subresourceRange = subresourceRange;
-
-                VkImageMemoryBarrier clearToPresentBarrier = {};//current to next image
-                clearToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;   
-                clearToPresentBarrier.pNext = VK_NULL_HANDLE;
-                clearToPresentBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-                clearToPresentBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-                clearToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-                clearToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                clearToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                clearToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                clearToPresentBarrier.image = m_vkCore.GetSwapchainImage(i);
-                clearToPresentBarrier.subresourceRange = subresourceRange;
 
                 VkCommandBufferBeginInfo beginInfo = {};
                 beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -101,25 +98,18 @@ class VulkanApp
                 VkResult result = vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo);
                 CHECK_VK_RESULT(result, "vkBeginCommandBuffer");
 
-                vkCmdPipelineBarrier(
-                    m_commandBuffers[i],
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,//VK_PIPELINE_TOP_OF_PIPE_BIT?
-                    VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                    0, 
-                    0, VK_NULL_HANDLE, 
-                    0, VK_NULL_HANDLE, 
-                    1, &presentToClearBarrier);
+                renderPassBeginInfo.framebuffer = m_frameBuffers[i];
+                vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                
+                // vkCmdClearColorImage(
+                //     m_commandBuffers[i],
+                //     m_vkCore.GetSwapchainImage(i), 
+                //     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                //     &clearColor, 
+                //     1, 
+                //     &subresourceRange);  
 
-                vkCmdClearColorImage(m_commandBuffers[i], m_vkCore.GetSwapchainImage(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &subresourceRange);
-
-                vkCmdPipelineBarrier(
-                    m_commandBuffers[i],
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 
-                    0, 
-                    0, VK_NULL_HANDLE, 
-                    0, VK_NULL_HANDLE, 
-                    1, &clearToPresentBarrier);
+                vkCmdEndRenderPass(m_commandBuffers[i]);
 
                 result = vkEndCommandBuffer(m_commandBuffers[i]);
                 CHECK_VK_RESULT(result, "vkEndCommandBuffer");
@@ -131,7 +121,8 @@ class VulkanApp
         m4VK::VulkanQueue* m_pQueue = VK_NULL_HANDLE;
         int m_numSwapchainImages = 0;
         std::vector<VkCommandBuffer> m_commandBuffers;
-        
+        std::vector<VkFramebuffer> m_frameBuffers;
+        VkRenderPass m_renderPass = VK_NULL_HANDLE;
 };
 
 int main(int argc, char* argv[])
