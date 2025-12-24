@@ -68,6 +68,30 @@ class VulkanApp
 
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
+                VkImageMemoryBarrier presentToClearBarrier = {};//prev to current image
+                presentToClearBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                presentToClearBarrier.pNext = VK_NULL_HANDLE;
+                presentToClearBarrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                presentToClearBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                presentToClearBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                presentToClearBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                presentToClearBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                presentToClearBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                presentToClearBarrier.image = m_vkCore.GetSwapchainImage(i);
+                presentToClearBarrier.subresourceRange = subresourceRange;
+
+                VkImageMemoryBarrier clearToPresentBarrier = {};//current to next image
+                clearToPresentBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;   
+                clearToPresentBarrier.pNext = VK_NULL_HANDLE;
+                clearToPresentBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                clearToPresentBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                clearToPresentBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                clearToPresentBarrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+                clearToPresentBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                clearToPresentBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                clearToPresentBarrier.image = m_vkCore.GetSwapchainImage(i);
+                clearToPresentBarrier.subresourceRange = subresourceRange;
+
                 VkCommandBufferBeginInfo beginInfo = {};
                 beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
                 beginInfo.pNext = VK_NULL_HANDLE;
@@ -77,7 +101,25 @@ class VulkanApp
                 VkResult result = vkBeginCommandBuffer(m_commandBuffers[i], &beginInfo);
                 CHECK_VK_RESULT(result, "vkBeginCommandBuffer");
 
-                vkCmdClearColorImage(m_commandBuffers[i], m_vkCore.GetSwapchainImage(i), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &subresourceRange);
+                vkCmdPipelineBarrier(
+                    m_commandBuffers[i],
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,//VK_PIPELINE_TOP_OF_PIPE_BIT?
+                    VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                    0, 
+                    0, VK_NULL_HANDLE, 
+                    0, VK_NULL_HANDLE, 
+                    1, &presentToClearBarrier);
+
+                vkCmdClearColorImage(m_commandBuffers[i], m_vkCore.GetSwapchainImage(i), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clearColor, 1, &subresourceRange);
+
+                vkCmdPipelineBarrier(
+                    m_commandBuffers[i],
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 
+                    0, 
+                    0, VK_NULL_HANDLE, 
+                    0, VK_NULL_HANDLE, 
+                    1, &clearToPresentBarrier);
 
                 result = vkEndCommandBuffer(m_commandBuffers[i]);
                 CHECK_VK_RESULT(result, "vkEndCommandBuffer");
