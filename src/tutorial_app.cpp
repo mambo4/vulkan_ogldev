@@ -1,5 +1,5 @@
 #include "m4_vulkan_core.h"
-
+#include "m4_vulkan_shader.h"
 //std
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +11,7 @@
 #define WINDOW_WIDTH 1280      
 #define WINDOW_HEIGHT 720
 
-#define APP_NAME "Tutorial02"
+#define APP_NAME "OGL_tutorial"
 
 GLFWwindow* window=NULL;
 
@@ -30,17 +30,21 @@ class VulkanApp
         ~VulkanApp() {
             m_vkCore.FreeCommandBuffers((uint32_t)m_commandBuffers.size(), m_commandBuffers.data());
             vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
+            vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_vert, VK_NULL_HANDLE);
+            vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_frag, VK_NULL_HANDLE);
         }
 
         void Init(const char* pAppName, GLFWwindow* pWindow) 
         {
             m_vkCore.Init(pAppName, pWindow);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
+            m_device=m_vkCore.GetDevice();
             m_pQueue = m_vkCore.GetQueue();
             m_renderPass=m_vkCore.CreateRenderPassSimple();
             m_frameBuffers=m_vkCore.CreateFrameBuffers(m_renderPass);
             CreateCommandBuffers();
             RecordCommandBuffers();
+            CreateShaders();
         }
         
         void RenderScene()
@@ -56,6 +60,13 @@ class VulkanApp
         {
             m_commandBuffers.resize(m_numSwapchainImages);
             m_vkCore.CreateCommandBuffers(m_numSwapchainImages, m_commandBuffers.data());
+            M4_LOG("CreateCommandBuffers...");
+        }
+
+        void CreateShaders()
+        {
+            m_shaderModule_vert=m4VK::createShaderModuleFromText(m_device,"../shaders/test.vert");
+            m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,"../shaders/test.frag");
         }
 
         void RecordCommandBuffers()
@@ -115,14 +126,20 @@ class VulkanApp
                 CHECK_VK_RESULT(result, "vkEndCommandBuffer");
 
             }
+
+            M4_LOG("RecordCommandBuffers...");
         }
 
+        GLFWwindow* m_window=VK_NULL_HANDLE;
         m4VK::VulkanCore m_vkCore;
         m4VK::VulkanQueue* m_pQueue = VK_NULL_HANDLE;
+        VkDevice m_device= VK_NULL_HANDLE;
         int m_numSwapchainImages = 0;
         std::vector<VkCommandBuffer> m_commandBuffers;
         std::vector<VkFramebuffer> m_frameBuffers;
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
+        VkShaderModule m_shaderModule_vert;
+        VkShaderModule m_shaderModule_frag;
 };
 
 int main(int argc, char* argv[])

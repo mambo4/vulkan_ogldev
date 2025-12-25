@@ -2,7 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <stdio.h>
 #include <cstdlib>
-
+#include <string>
 
 
 #define CHECK_VK_RESULT(value, message) if (value != VK_SUCCESS) {\
@@ -16,8 +16,10 @@
 namespace m4VK {
 
     const char* GetDebugSeverityString(VkDebugUtilsMessageSeverityFlagBitsEXT Severity);
-
     const char* GetDebugType(VkDebugUtilsMessageTypeFlagsEXT Type);  
-
     const char* GetObjectTypeString(VkObjectType type);
+    bool readFileText(const char* pFileName, std::string& outFile);
+    char* readFileBinary(const char* pFileName, int& size);
+    void writeFileBinary(const char* pFilename, const void* pData, int size);
+
 }

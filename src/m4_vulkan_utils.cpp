@@ -1,6 +1,8 @@
 #include "m4_vulkan_utils.h"
 #include <vulkan/vulkan.h>
 #include <iostream>
+#include <fstream>
+#include <assert.h>
 
     const char* m4VK::GetDebugSeverityString(VkDebugUtilsMessageSeverityFlagBitsEXT Severity)
     {
@@ -54,4 +56,75 @@
             default:
                 return "UNKNOWN_OBJECT_TYPE";
         }
+    }
+
+
+    bool m4VK::readFileText(const char* pFileName, std::string& outFile)//totally vibe coded here lets see if it works
+    {
+        std::ifstream file(pFileName);
+        if (!file.is_open()) {
+            M4_ERROR("Failed to open file: %s", pFileName);
+            return false;
+        }
+
+        outFile.assign((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+
+        file.close();
+        return true;
+    }
+
+    char*  m4VK::readFileBinary(const char* pFileName, int& size)
+    {
+        FILE* f = NULL;
+
+        errno_t err = fopen_s(&f, pFileName, "rb");
+
+        if (!f) {
+            char buf[256] = { 0 };
+            strerror_s(buf, sizeof(buf), err);
+            M4_ERROR("Error opening '%s': %s\n", pFileName, buf);
+            exit(0);
+        }
+
+        struct stat stat_buf;
+        int error = stat(pFileName, &stat_buf);
+
+        if (error) {
+            char buf[256] = { 0 };
+            strerror_s(buf, sizeof(buf), err);
+            M4_ERROR("Error getting file stats: %s\n", buf);
+            return NULL;
+        }
+
+        size = stat_buf.st_size;
+
+        char* p = (char*)malloc(size);
+        assert(p);
+
+        size_t bytes_read = fread(p, 1, size, f);
+
+        if (bytes_read != size) {
+            char buf[256] = { 0 };
+            strerror_s(buf, sizeof(buf), err);
+            M4_ERROR("Read file error file: %s\n", buf);
+            exit(0);
+        }
+
+        fclose(f);
+
+        return p;
+
+    }
+
+    void m4VK::writeFileBinary(const char* pFileName, const void* pData, int size)//totally vibe coded here lets see if it works
+    {
+        std::ofstream file(pFileName, std::ios::binary);
+        if (!file.is_open()) {
+            M4_ERROR("Failed to open file for writing: %s", pFileName);
+            exit(0);
+        }
+
+        file.write(static_cast<const char*>(pData), size);
+        file.close();
     }
