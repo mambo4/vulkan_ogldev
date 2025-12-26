@@ -1,7 +1,7 @@
 
 #version 460
-
-vec2 pos[3] = vec2[3]( vec2(-0.7, 0.7), vec2(0.7, 0.7), vec2(0.0, -0.7) ); 
+layout(location = 0) out vec4 out_Color;
+vec2 pos[3] = vec2[3]( vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0.0, 0.5) ); 
 
 void main() 
 {

@@ -12,6 +12,8 @@
 #define M4_ERROR(fmt, ...) fprintf(stderr, "ERROR: " fmt " (%s:[%d])\n", ##__VA_ARGS__, __FILE__, __LINE__)
 #define M4_LOG(fmt, ...)   fprintf(stdout, fmt "\n", ##__VA_ARGS__)
 #define M4_DEBUG(fmt, ...)   fprintf(stdout, fmt " (%s:[%d])\n", ##__VA_ARGS__, __FILE__, __LINE__)
+#define ARRAY_COUNT(a) (sizeof(a)/sizeof(a[0]))
+#define ARRAY_BYTES(a) (sizeof(a[0]) * a.size())
 
 namespace m4VK {
 

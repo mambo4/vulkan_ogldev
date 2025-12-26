@@ -1,5 +1,7 @@
 #include "m4_vulkan_core.h"
 #include "m4_vulkan_shader.h"
+#include "m4_vulkan_pipeline.h"
+#include "colors.h"
 //std
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +13,9 @@
 #define WINDOW_WIDTH 1280      
 #define WINDOW_HEIGHT 720
 
-#define APP_NAME "OGL_tutorial"
+
+
+#define APP_NAME "OGL_tutorial_14"
 
 GLFWwindow* window=NULL;
 
@@ -32,19 +36,22 @@ class VulkanApp
             vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
             vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_vert, VK_NULL_HANDLE);
             vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_frag, VK_NULL_HANDLE);
+            delete m_pPipeline;
         }
 
         void Init(const char* pAppName, GLFWwindow* pWindow) 
         {
+            m_pWindow=pWindow;
             m_vkCore.Init(pAppName, pWindow);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
             m_device=m_vkCore.GetDevice();
             m_pQueue = m_vkCore.GetQueue();
             m_renderPass=m_vkCore.CreateRenderPassSimple();
             m_frameBuffers=m_vkCore.CreateFrameBuffers(m_renderPass);
+            CreateShaders();
+            CreatePipeline();
             CreateCommandBuffers();
             RecordCommandBuffers();
-            CreateShaders();
         }
         
         void RenderScene()
@@ -69,10 +76,21 @@ class VulkanApp
             m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,"../shaders/test.frag");
         }
 
+        void CreatePipeline(){
+
+            m_pPipeline = new m4VK::GraphicsPipeline(
+                m_device,
+                m_pWindow,
+                m_renderPass,
+                m_shaderModule_vert,
+                m_shaderModule_frag
+            );
+        }
+
         void RecordCommandBuffers()
         {
 
-            VkClearColorValue clearColor = {  0.05f, 0.05f, 0.1f, 1.0f  };
+            VkClearColorValue clearColor = COLOR_BLACK;
             VkClearValue clearValue;
             clearValue.color = clearColor;
 
@@ -112,25 +130,25 @@ class VulkanApp
                 renderPassBeginInfo.framebuffer = m_frameBuffers[i];
                 vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                 
-                // vkCmdClearColorImage(
-                //     m_commandBuffers[i],
-                //     m_vkCore.GetSwapchainImage(i), 
-                //     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                //     &clearColor, 
-                //     1, 
-                //     &subresourceRange);  
+                m_pPipeline->bind(m_commandBuffers[i]);
+
+                 uint32_t vertCount =3;
+                 uint32_t instanceCount=1;
+                 uint32_t firstVertex=0;
+                 uint32_t firstInstance=0;
+
+                vkCmdDraw(m_commandBuffers[i],vertCount, instanceCount, firstVertex, firstInstance);  
 
                 vkCmdEndRenderPass(m_commandBuffers[i]);
 
                 result = vkEndCommandBuffer(m_commandBuffers[i]);
                 CHECK_VK_RESULT(result, "vkEndCommandBuffer");
-
             }
 
             M4_LOG("RecordCommandBuffers...");
         }
 
-        GLFWwindow* m_window=VK_NULL_HANDLE;
+        GLFWwindow* m_pWindow=VK_NULL_HANDLE;
         m4VK::VulkanCore m_vkCore;
         m4VK::VulkanQueue* m_pQueue = VK_NULL_HANDLE;
         VkDevice m_device= VK_NULL_HANDLE;
@@ -140,6 +158,7 @@ class VulkanApp
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkShaderModule m_shaderModule_vert;
         VkShaderModule m_shaderModule_frag;
+        m4VK::GraphicsPipeline* m_pPipeline = NULL;
 };
 
 int main(int argc, char* argv[])
