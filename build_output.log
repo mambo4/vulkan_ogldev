@@ -1,3 +1,4 @@
+m4_simple_mesh.cpp
 m4_vulkan_core.cpp
 m4_vulkan_device.cpp
 m4_vulkan_pipeline.cpp
@@ -245,5 +246,5 @@ SPIRV-Tools-opt.lib(loop_dependence_helpers.obj) : warning LNK4099: PDB 'SPIRV-T
 glslang-default-resource-limits.lib(resource_limits_c.obj) : warning LNK4099: PDB 'glslang-default-resource-limits.pdb' was not found with 'glslang-default-resource-limits.lib(resource_limits_c.obj)' or at 'C:\vulkan_ogldev\bin\glslang-default-resource-limits.pdb'; linking object as if no debug info
 glslang-default-resource-limits.lib(ResourceLimits.obj) : warning LNK4099: PDB 'glslang-default-resource-limits.pdb' was not found with 'glslang-default-resource-limits.lib(ResourceLimits.obj)' or at 'C:\vulkan_ogldev\bin\glslang-default-resource-limits.pdb'; linking object as if no debug info
 SPIRV-Tools.lib(libspirv.obj) : warning LNK4099: PDB 'SPIRV-Tools.pdb' was not found with 'SPIRV-Tools.lib(libspirv.obj)' or at 'C:\vulkan_ogldev\bin\SPIRV-Tools.pdb'; linking object as if no debug info
-LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library
 SPIRV-Tools.lib(bit_vector.obj) : warning LNK4099: PDB 'SPIRV-Tools.pdb' was not found with 'SPIRV-Tools.lib(bit_vector.obj)' or at 'C:\vulkan_ogldev\bin\SPIRV-Tools.pdb'; linking object as if no debug info
+LINK : warning LNK4098: defaultlib 'LIBCMT' conflicts with use of other libs; use /NODEFAULTLIB:library

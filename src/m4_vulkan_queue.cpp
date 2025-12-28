@@ -93,22 +93,22 @@ namespace m4VK {
 
     }
 
-    // void VulkanQueue::SubmitCommandBufferSync(VkCommandBuffer commandBuffer) {
-    //     VkSubmitInfo submitInfo = {};
-    //     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    void VulkanQueue::SubmitCommandBufferSync(VkCommandBuffer commandBuffer) {
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    //     submitInfo.waitSemaphoreCount = 0;
-    //     submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
 
-    //     submitInfo.commandBufferCount = 1;
-    //     submitInfo.pCommandBuffers = &commandBuffer;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &commandBuffer;
 
-    //     submitInfo.signalSemaphoreCount = 0;
-    //     submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = VK_NULL_HANDLE;
 
-    //     VkResult result = vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE);
-    //     CHECK_VK_RESULT(result, "vkQueueSubmit Failed to submit command buffer");
-    // }
+        VkResult result = vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE);
+        CHECK_VK_RESULT(result, "vkQueueSubmit Failed to submit command buffer");
+    }
 
     void VulkanQueue::PresentImage(uint32_t imageIndex) {
         VkPresentInfoKHR presentInfo = {};

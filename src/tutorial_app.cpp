@@ -2,6 +2,8 @@
 #include "m4_vulkan_shader.h"
 #include "m4_vulkan_pipeline.h"
 #include "colors.h"
+#include "m4_simple_mesh.h"
+
 //std
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,13 +11,15 @@
 //libs
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
+#include "glm.hpp"
+#include "ext.hpp"
 
 #define WINDOW_WIDTH 1280      
 #define WINDOW_HEIGHT 720
 
 
 
-#define APP_NAME "OGL_tutorial_14"
+#define APP_NAME "OGL_tutorial_15"
 
 GLFWwindow* window=NULL;
 
@@ -49,6 +53,7 @@ class VulkanApp
             m_renderPass=m_vkCore.CreateRenderPassSimple();
             m_frameBuffers=m_vkCore.CreateFrameBuffers(m_renderPass);
             CreateShaders();
+            CreateVertexBuffer();
             CreatePipeline();
             CreateCommandBuffers();
             RecordCommandBuffers();
@@ -62,6 +67,37 @@ class VulkanApp
         }
 
     private:
+        void CreateShaders()
+        {
+            m_shaderModule_vert=m4VK::createShaderModuleFromText(m_device,"../shaders/test.vert");
+            m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,"../shaders/test.frag");
+        }
+
+        void CreateVertexBuffer(){
+
+            struct Vertex
+            {
+                Vertex(const glm::vec3&p, const glm::vec2 t)
+                {
+                    pos=p;
+                    uv=t;
+                }
+                glm::vec3 pos;
+                glm::vec2 uv;
+
+            };
+
+            std::vector<Vertex>vertices ={
+                Vertex({-0.5f,-0.5f,0.0f},{0.2f,0.8f}),
+                Vertex({0.5f,-0.5f,0.0f},{0.8f,0.8f}),
+                Vertex({0.0f,0.5f,0.0f},{0.5f,0.2f})
+            };
+
+            // m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
+            // m_mesh.m_vertextBuffer=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize ) 
+            
+
+        }
 
         void CreateCommandBuffers()
         {
@@ -70,11 +106,7 @@ class VulkanApp
             M4_LOG("CreateCommandBuffers...");
         }
 
-        void CreateShaders()
-        {
-            m_shaderModule_vert=m4VK::createShaderModuleFromText(m_device,"../shaders/test.vert");
-            m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,"../shaders/test.frag");
-        }
+
 
         void CreatePipeline(){
 
@@ -83,7 +115,10 @@ class VulkanApp
                 m_pWindow,
                 m_renderPass,
                 m_shaderModule_vert,
-                m_shaderModule_frag
+                m_shaderModule_frag,
+                NULL,
+                0,
+                m_numSwapchainImages
             );
         }
 
@@ -114,7 +149,7 @@ class VulkanApp
             subresourceRange.baseArrayLayer = 0;
             subresourceRange.layerCount = 1;
 
-
+ 
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
 
@@ -130,7 +165,7 @@ class VulkanApp
                 renderPassBeginInfo.framebuffer = m_frameBuffers[i];
                 vkCmdBeginRenderPass(m_commandBuffers[i], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
                 
-                m_pPipeline->bind(m_commandBuffers[i]);
+                m_pPipeline->bind(m_commandBuffers[i],i);
 
                  uint32_t vertCount =3;
                  uint32_t instanceCount=1;

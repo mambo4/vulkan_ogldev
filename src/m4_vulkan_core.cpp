@@ -8,9 +8,6 @@
 # include <assert.h>
 
 
-// #define __apple__
-// #define __linux__
-
 namespace m4VK
 {
     
@@ -43,7 +40,9 @@ namespace m4VK
             M4_LOG("vkDestroyFramebuffer[%d]",i  );
         }
 
+        vkFreeCommandBuffers(m_device, m_commandBufferPool, 1, &m_copyCommandBuffer);
         vkDestroyCommandPool(m_device, m_commandBufferPool, NULL);
+
         M4_LOG("vkDestroyCommandPool");
 
         m_queue.Destroy();
@@ -97,6 +96,7 @@ namespace m4VK
         CreateSwapChain();
         CreateCommandBufferPool();
         m_queue.Init(m_device, m_swapChain, m_queueFamilyIndex, 0);
+        CreateCommandBuffers(1,&m_copyCommandBuffer);
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -466,4 +466,130 @@ namespace m4VK
         }
         return m_frameBuffers;
     }
+
+    BufferAndMemory VulkanCore::CreateVertexBuffer(const void* pVertices, size_t size){
+
+        VkBufferUsageFlags usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+        VkMemoryPropertyFlags memoryProperties=VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+        BufferAndMemory stagingBam=CreateBuffer(size,usage,memoryProperties);
+
+        /*CONTINUE after fixingf CreateBuffer-*/
+        void* pMappedMemoryAdress=VK_NULL_HANDLE;
+        VkDeviceSize offset = 0;
+        VkMemoryMapFlags flags = 0;
+        VkResult result=vkMapMemory(
+            m_device,
+            stagingBam.m_memory,
+            offset,
+            stagingBam.m_allocationSize,
+            flags,
+            &pMappedMemoryAdress
+        );
+        CHECK_VK_RESULT(result, "vkMapMemory");
+
+        //3,4 copy and unmap
+        memcpy(pMappedMemoryAdress,pVertices,size);
+        vkUnmapMemory(m_device, stagingBam.m_memory);
+
+        //5 create final buffer
+        usage=VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        memoryProperties=VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        BufferAndMemory bam=CreateBuffer(size,usage,memoryProperties);
+
+        //6 copy staging buffer
+        CopyBuffer(bam.m_buffer,stagingBam.m_buffer,size);
+        
+        //7 release resources
+        stagingBam.Destroy(m_device);
+
+        return bam;
+    }
+
+    BufferAndMemory VulkanCore::CreateBuffer(
+        VkDeviceSize size,
+        VkBufferUsageFlags usage,
+        VkMemoryPropertyFlags properties)
+    {
+        VkBufferCreateInfo infoBuffer{};
+        infoBuffer.sType=VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+        infoBuffer.size=size;
+        infoBuffer.usage=usage;
+        infoBuffer.sharingMode=VK_SHARING_MODE_EXCLUSIVE;
+
+        BufferAndMemory bam;
+
+        VkResult result=vkCreateBuffer(m_device, &infoBuffer, VK_NULL_HANDLE, &bam.m_buffer);
+        CHECK_VK_RESULT(result,"vkCreateBuffer");
+        M4_LOG("buffer created.");
+
+        VkMemoryRequirements memoryRequirements={};
+        vkGetBufferMemoryRequirements(m_device, bam.m_buffer,&memoryRequirements);
+        M4_LOG("buffer requires %d bytes", (int)memoryRequirements.size);
+
+        uint32_t memoryTypeIndex= GetMemoryTypeIndex(memoryRequirements.memoryTypeBits, properties);
+        M4_LOG("memory type index %d", memoryTypeIndex);
+
+        VkMemoryAllocateInfo infoMemoryAllocate{};
+        infoMemoryAllocate.sType=VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        infoMemoryAllocate.allocationSize=memoryRequirements.size;
+        infoMemoryAllocate.memoryTypeIndex=memoryTypeIndex;
+
+        result= vkAllocateMemory(m_device,&infoMemoryAllocate, VK_NULL_HANDLE, &bam.m_memory);
+        CHECK_VK_RESULT(result,"vkAllocateMemory");
+
+        result=vkBindBufferMemory(m_device,bam.m_buffer,bam.m_memory,0);
+        CHECK_VK_RESULT(result, "vkBindBufferMemory")
+
+        return bam;
+
+    }
+
+    void VulkanCore::CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size){
+
+        VkCommandBufferBeginInfo infoCommandBufferBegin = {};
+        infoCommandBufferBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        infoCommandBufferBegin.pNext = VK_NULL_HANDLE;
+        infoCommandBufferBegin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        infoCommandBufferBegin.pInheritanceInfo = VK_NULL_HANDLE;
+
+        VkResult result = vkBeginCommandBuffer(m_copyCommandBuffer, &infoCommandBufferBegin);
+        CHECK_VK_RESULT(result, "vkBeginCommandBuffer");
+
+        VkBufferCopy bufferCopy={};
+        bufferCopy.srcOffset=0;
+        bufferCopy.dstOffset=0;
+        bufferCopy.size=size;
+        vkCmdCopyBuffer(m_copyCommandBuffer, src,dst,1,&bufferCopy);
+
+        vkEndCommandBuffer(m_copyCommandBuffer);
+
+        m_queue.SubmitCommandBufferSync(m_copyCommandBuffer);
+        m_queue.WaitIdle();
+    }
+
+    uint32_t VulkanCore::GetMemoryTypeIndex(uint32_t memoryTypeBits, VkMemoryPropertyFlags requiredMemoryPropertyFlags){
+
+        const VkPhysicalDeviceMemoryProperties& memoryProperties= m_physicalDevices.GetSelectedDevice().m_deviceMemoryProperties;
+
+        for (uint32_t i =0; i<memoryProperties.memoryTypeCount;i++){
+            if((memoryTypeBits & (1<<i))&&
+            ((memoryProperties.memoryTypes[i].propertyFlags & requiredMemoryPropertyFlags)==requiredMemoryPropertyFlags)){
+                return i;
+            }
+        }
+        M4_LOG("no type for type %x requested memory Properties %x", memoryTypeBits, requiredMemoryPropertyFlags);
+        exit(1);
+        return -1;
+    }
+
+    void BufferAndMemory::Destroy(VkDevice device)
+    {
+        if(m_memory){
+            vkFreeMemory( device,m_memory, VK_NULL_HANDLE);
+        }
+        if(m_buffer){
+            vkDestroyBuffer(device,m_buffer,VK_NULL_HANDLE);
+        }
+    }
+
 }

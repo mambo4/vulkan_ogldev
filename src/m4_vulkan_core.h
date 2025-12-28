@@ -8,6 +8,20 @@
 
 namespace m4VK
 {
+    class BufferAndMemory {
+    public:
+        BufferAndMemory() {}
+
+        VkBuffer m_buffer = NULL;
+        VkDeviceMemory m_memory = NULL;
+        VkDeviceSize m_allocationSize = 0;
+
+        void Update(VkDevice Device, const void* pData, size_t Size);
+
+        void Destroy(VkDevice Device);
+    };
+
+
     class VulkanCore
     {
         public:
@@ -21,8 +35,10 @@ namespace m4VK
             VulkanQueue* GetQueue() { return &m_queue; }
             void CreateCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
             void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
+            BufferAndMemory CreateVertexBuffer(const void* pVertices, size_t size);
             VkRenderPass CreateRenderPassSimple();
             std::vector<VkFramebuffer>CreateFrameBuffers(VkRenderPass renderPass);
+
 
         private:
             void CreateInstance(const char* pAppName);
@@ -31,6 +47,14 @@ namespace m4VK
             void CreateDevice();
             void CreateSwapChain();
             void CreateCommandBufferPool();
+            uint32_t GetMemoryTypeIndex(uint32_t memTypeBits, VkMemoryPropertyFlags memPropFlags);
+            void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
+            BufferAndMemory CreateBuffer(
+                VkDeviceSize size,
+                VkBufferUsageFlags usage,
+                VkMemoryPropertyFlags properties
+            );
+
 
             VkInstance m_instance = VK_NULL_HANDLE;
             VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
@@ -46,7 +70,8 @@ namespace m4VK
             std::vector<VkFramebuffer>m_frameBuffers;
             VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
             VulkanQueue m_queue;
-            
+            VkCommandBuffer m_copyCommandBuffer;
+    
     };
 
 }
