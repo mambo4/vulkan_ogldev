@@ -35,11 +35,6 @@ namespace m4VK
     {
         M4_LOG("\n----------- destructor ~VulkanCore() --------------");
 
-        for (int i=0;i<m_frameBuffers.size();i++){
-            vkDestroyFramebuffer(m_device, m_frameBuffers[i], VK_NULL_HANDLE);
-            M4_LOG("vkDestroyFramebuffer[%d]",i  );
-        }
-
         vkFreeCommandBuffers(m_device, m_commandBufferPool, 1, &m_copyCommandBuffer);
         vkDestroyCommandPool(m_device, m_commandBufferPool, NULL);
 
@@ -80,6 +75,7 @@ namespace m4VK
         }
         vkDestroyInstance(m_instance, VK_NULL_HANDLE);
         M4_LOG("vkDestroyInstance");
+
     }
 
     void VulkanCore::Init(const char* pAppName, GLFWwindow* pWindow)
@@ -439,9 +435,10 @@ namespace m4VK
         return renderPass;
     }   
 
-    std::vector<VkFramebuffer>VulkanCore::CreateFrameBuffers(VkRenderPass renderPass){
+    std::vector<VkFramebuffer>VulkanCore::CreateFrameBuffer(VkRenderPass renderPass){
 
-        m_frameBuffers.resize(m_swapChainImages.size());
+        std::vector<VkFramebuffer> frameBuffers;
+        frameBuffers.resize(m_swapChainImages.size());
 
         int width = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.width;
         int height = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.height;
@@ -460,35 +457,44 @@ namespace m4VK
         {
             framebufferInfo.pAttachments = &m_swapChainImageViews[i] ;
 
-            VkResult result = vkCreateFramebuffer(m_device, &framebufferInfo, VK_NULL_HANDLE, &m_frameBuffers[i]);
+            VkResult result = vkCreateFramebuffer(m_device, &framebufferInfo, VK_NULL_HANDLE, &frameBuffers[i]);
             CHECK_VK_RESULT(result, "vkCreateFramebuffer");
-            M4_LOG("Vulkan Framebuffer Created Successfully");
+            M4_LOG("Framebuffer[%d] Created Successfully",i);
         }
-        return m_frameBuffers;
+        return frameBuffers;
     }
 
-    BufferAndMemory VulkanCore::CreateVertexBuffer(const void* pVertices, size_t size){
+    void VulkanCore::DestroyFrameBuffers(std::vector<VkFramebuffer> frameBuffers){
+        for(int i=0; i<frameBuffers.size();i++){
+            vkDestroyFramebuffer(m_device,frameBuffers[i], VK_NULL_HANDLE);
+        }
+    }
 
+     BufferAndMemory VulkanCore::CreateVertexBuffer(const void* pVertices, size_t size){
+
+        //1 create staging buffer
         VkBufferUsageFlags usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         VkMemoryPropertyFlags memoryProperties=VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT|VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
         BufferAndMemory stagingBam=CreateBuffer(size,usage,memoryProperties);
 
-        /*CONTINUE after fixingf CreateBuffer-*/
-        void* pMappedMemoryAdress=VK_NULL_HANDLE;
+        //2 map the memory of  staging buffer
+        void* pMappedMemory=VK_NULL_HANDLE;
         VkDeviceSize offset = 0;
         VkMemoryMapFlags flags = 0;
         VkResult result=vkMapMemory(
             m_device,
             stagingBam.m_memory,
             offset,
-            stagingBam.m_allocationSize,
+            VK_WHOLE_SIZE,
             flags,
-            &pMappedMemoryAdress
+            &pMappedMemory
         );
-        CHECK_VK_RESULT(result, "vkMapMemory");
+        CHECK_VK_RESULT(result, "vkMapMemory - staging buffer");
 
-        //3,4 copy and unmap
-        memcpy(pMappedMemoryAdress,pVertices,size);
+        //3 copy verts to staging buffer
+        memcpy(pMappedMemory,pVertices,size);
+
+        //4 unmap
         vkUnmapMemory(m_device, stagingBam.m_memory);
 
         //5 create final buffer
@@ -511,7 +517,7 @@ namespace m4VK
         VkMemoryPropertyFlags properties)
     {
         VkBufferCreateInfo infoBuffer{};
-        infoBuffer.sType=VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+        infoBuffer.sType=VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         infoBuffer.size=size;
         infoBuffer.usage=usage;
         infoBuffer.sharingMode=VK_SHARING_MODE_EXCLUSIVE;

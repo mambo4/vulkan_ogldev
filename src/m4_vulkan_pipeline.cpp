@@ -12,18 +12,15 @@ namespace m4VK{
         VkRenderPass renderPass,
         VkShaderModule shaderModule_vert,
         VkShaderModule shaderModule_frag,
-        VkBuffer vertexBuffer,
-        size_t vertexBufferSize,
+        const SimpleMesh* pMesh,
         int imageCount
     )
     {
         m_device=device;
 
 
-        CreateDescriptorPool(imageCount);
-
-        if(vertexBuffer){
-            CreateDescriptorSet(imageCount,vertexBuffer,vertexBufferSize);
+        if(pMesh){
+            CreateDescriptorSets(imageCount,pMesh);
         }
 
         VkPipelineShaderStageCreateInfo infoShaderStage[2]{};
@@ -96,7 +93,7 @@ namespace m4VK{
         VkPipelineLayoutCreateInfo infoPipelineLayout{};
         infoPipelineLayout.sType=VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-        if(vertexBuffer){
+        if(pMesh && pMesh->m_bam.m_buffer){
             infoPipelineLayout.setLayoutCount = 1;
             infoPipelineLayout.pSetLayouts = &m_decscriptorSetLayout;
         }else{
@@ -131,9 +128,9 @@ namespace m4VK{
 
     GraphicsPipeline::~GraphicsPipeline()
     {
+        vkDestroyDescriptorPool(m_device,m_descriptorPool, VK_NULL_HANDLE);
         vkDestroyDescriptorSetLayout(m_device,m_decscriptorSetLayout,VK_NULL_HANDLE);
         vkDestroyPipelineLayout(m_device,m_pipelineLayout,VK_NULL_HANDLE);
-        vkDestroyDescriptorPool(m_device,m_descriptorPool, VK_NULL_HANDLE);
         vkDestroyPipeline(m_device,m_pipeline,VK_NULL_HANDLE);
     };
 
@@ -153,13 +150,27 @@ namespace m4VK{
         }
     }
 
+    void GraphicsPipeline::CreateDescriptorSets(int imageCount,const SimpleMesh* pMesh)
+    {
+        CreateDescriptorPool(imageCount);
+        CreateDescriptorSetLayout();
+        AllocateDescriptorSets(imageCount);
+        UpdateDescriptorSets(imageCount,pMesh);
+    }
+
     void GraphicsPipeline::CreateDescriptorPool(int imageCount)
     {
+
+        VkDescriptorPoolSize poolSize{};
+        poolSize.descriptorCount=(uint32_t)imageCount;
+        poolSize.type=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
         VkDescriptorPoolCreateInfo infoDescriptorPool{};
         infoDescriptorPool.sType=VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        infoDescriptorPool.flags=0;
         infoDescriptorPool.maxSets=(uint32_t)imageCount;
-        infoDescriptorPool.poolSizeCount=0;
-        infoDescriptorPool.pPoolSizes=VK_NULL_HANDLE;
+        infoDescriptorPool.poolSizeCount=1;
+        infoDescriptorPool.pPoolSizes=&poolSize;
 
         VkResult result=vkCreateDescriptorPool(m_device, &infoDescriptorPool,VK_NULL_HANDLE,&m_descriptorPool);
         CHECK_VK_RESULT(result,"vkCreateDescriptorPool");
@@ -167,7 +178,7 @@ namespace m4VK{
 
     }
 
-    void GraphicsPipeline::CreateDescriptorSet(int imageCount, const VkBuffer& vertexBuffer, size_t vertexBufferSize)
+    void GraphicsPipeline::CreateDescriptorSetLayout() 
     {
         std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
         
@@ -187,10 +198,13 @@ namespace m4VK{
 
         VkResult result=vkCreateDescriptorSetLayout(m_device, &infoDescriptorSetLayout, VK_NULL_HANDLE, &m_decscriptorSetLayout);
         CHECK_VK_RESULT(result,"vkCreateDescriptorSetLayout");
+         M4_LOG("CreateDescriptorSetLayout");
 
-        //}
+    }
 
-        //todo: GraphicsPipeline::AllocateDescriptorSets
+    void GraphicsPipeline::AllocateDescriptorSets(int imageCount)
+    {
+
         std::vector<VkDescriptorSetLayout> layouts(imageCount, m_decscriptorSetLayout);
 
         VkDescriptorSetAllocateInfo infoDescriptorSetAllocate{};
@@ -202,20 +216,21 @@ namespace m4VK{
 
         m_descriptorSets.resize(imageCount);
 
-        result=vkAllocateDescriptorSets(m_device,&infoDescriptorSetAllocate, m_descriptorSets.data());
+        VkResult result=vkAllocateDescriptorSets(m_device,&infoDescriptorSetAllocate, m_descriptorSets.data());
         CHECK_VK_RESULT(result,"vkAllocateDescriptorSets");
+        M4_LOG("AllocateDescriptorSets");
+    }
 
-        //todo:  GraphicsPipeline::UpdateDescriptorSets
-        //thsiis shuffled around a it
+    void GraphicsPipeline::UpdateDescriptorSets(int imageCount, const SimpleMesh* pMesh)
+    {
+        VkDescriptorBufferInfo infoDescriptorBuffer{};
+        infoDescriptorBuffer.buffer=pMesh->m_bam.m_buffer;
+        infoDescriptorBuffer.offset=0;
+        infoDescriptorBuffer.range=pMesh->m_vertexBufferSize;
+
+        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
         for ( size_t i=0; i<imageCount; i++)
         {
-            VkDescriptorBufferInfo infoDescriptorBuffer{};
-            infoDescriptorBuffer.buffer=vertexBuffer;
-            infoDescriptorBuffer.offset=0;
-            infoDescriptorBuffer.range=vertexBufferSize;
-
-            std::vector<VkWriteDescriptorSet> writeDescriptorSets;
-
             VkWriteDescriptorSet writeDescriptorSet{};
             writeDescriptorSet.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             writeDescriptorSet.dstSet=m_descriptorSets[i];
@@ -225,11 +240,10 @@ namespace m4VK{
             writeDescriptorSet.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
             writeDescriptorSet.pBufferInfo = &infoDescriptorBuffer;
 
-            writeDescriptorSets[0]=writeDescriptorSet;
+            writeDescriptorSets.push_back(writeDescriptorSet);
 
             vkUpdateDescriptorSets(m_device,(uint32_t)writeDescriptorSets.size(),writeDescriptorSets.data(),0,VK_NULL_HANDLE);
+            M4_LOG("UpdateDescriptorSets");
         }
-
     }
-
 } 

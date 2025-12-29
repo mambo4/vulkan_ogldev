@@ -2,7 +2,7 @@
 #include "m4_vulkan_shader.h"
 #include "m4_vulkan_pipeline.h"
 #include "colors.h"
-#include "m4_simple_mesh.h"
+#include "m4_vulkan_simple_mesh.h"
 
 //std
 #include <stdio.h>
@@ -37,10 +37,12 @@ class VulkanApp
         VulkanApp() {}
         ~VulkanApp() {
             m_vkCore.FreeCommandBuffers((uint32_t)m_commandBuffers.size(), m_commandBuffers.data());
-            vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
+            m_vkCore.DestroyFrameBuffers(m_frameBuffers);
             vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_vert, VK_NULL_HANDLE);
             vkDestroyShaderModule(m_vkCore.GetDevice(),m_shaderModule_frag, VK_NULL_HANDLE);
             delete m_pPipeline;
+            vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
+            m_mesh.Destroy(m_device);
         }
 
         void Init(const char* pAppName, GLFWwindow* pWindow) 
@@ -51,7 +53,7 @@ class VulkanApp
             m_device=m_vkCore.GetDevice();
             m_pQueue = m_vkCore.GetQueue();
             m_renderPass=m_vkCore.CreateRenderPassSimple();
-            m_frameBuffers=m_vkCore.CreateFrameBuffers(m_renderPass);
+            m_frameBuffers=m_vkCore.CreateFrameBuffer(m_renderPass);
             CreateShaders();
             CreateVertexBuffer();
             CreatePipeline();
@@ -93,8 +95,8 @@ class VulkanApp
                 Vertex({0.0f,0.5f,0.0f},{0.5f,0.2f})
             };
 
-            // m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
-            // m_mesh.m_vertextBuffer=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize ) 
+            m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
+            m_mesh.m_bam=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize );
             
 
         }
@@ -116,8 +118,7 @@ class VulkanApp
                 m_renderPass,
                 m_shaderModule_vert,
                 m_shaderModule_frag,
-                NULL,
-                0,
+                &m_mesh,
                 m_numSwapchainImages
             );
         }
@@ -194,6 +195,7 @@ class VulkanApp
         VkShaderModule m_shaderModule_vert;
         VkShaderModule m_shaderModule_frag;
         m4VK::GraphicsPipeline* m_pPipeline = NULL;
+        m4VK::SimpleMesh m_mesh;
 };
 
 int main(int argc, char* argv[])

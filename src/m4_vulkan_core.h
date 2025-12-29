@@ -37,7 +37,8 @@ namespace m4VK
             void FreeCommandBuffers(uint32_t commandBufferCount , VkCommandBuffer* pCommandBuffers);
             BufferAndMemory CreateVertexBuffer(const void* pVertices, size_t size);
             VkRenderPass CreateRenderPassSimple();
-            std::vector<VkFramebuffer>CreateFrameBuffers(VkRenderPass renderPass);
+            std::vector<VkFramebuffer>CreateFrameBuffer(VkRenderPass renderPass);
+            void DestroyFrameBuffers(std::vector<VkFramebuffer> frameBuffers);
 
 
         private:
@@ -67,7 +68,6 @@ namespace m4VK
             VkSwapchainKHR m_swapChain   = VK_NULL_HANDLE;
             std::vector<VkImage> m_swapChainImages; 
             std::vector<VkImageView> m_swapChainImageViews;
-            std::vector<VkFramebuffer>m_frameBuffers;
             VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
             VulkanQueue m_queue;
             VkCommandBuffer m_copyCommandBuffer;
