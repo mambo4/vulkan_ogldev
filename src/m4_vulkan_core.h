@@ -39,7 +39,8 @@ namespace m4VK
             VkRenderPass CreateRenderPassSimple();
             std::vector<VkFramebuffer>CreateFrameBuffer(VkRenderPass renderPass);
             void DestroyFrameBuffers(std::vector<VkFramebuffer> frameBuffers);
-
+            void CreateUniformBuffers(size_t size, std::vector<BufferAndMemory>&buffers);
+            void GetFrameBufferSize(int&width, int& height)const;
 
         private:
             void CreateInstance(const char* pAppName);
@@ -50,6 +51,7 @@ namespace m4VK
             void CreateCommandBufferPool();
             uint32_t GetMemoryTypeIndex(uint32_t memTypeBits, VkMemoryPropertyFlags memPropFlags);
             void CopyBuffer(VkBuffer dst, VkBuffer src, VkDeviceSize size);
+            BufferAndMemory CreateUniformBuffer(size_t size);
             BufferAndMemory CreateBuffer(
                 VkDeviceSize size,
                 VkBufferUsageFlags usage,

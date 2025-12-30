@@ -19,7 +19,7 @@
 
 
 
-#define APP_NAME "OGL_tutorial_15"
+#define APP_NAME "OGL_tutorial_17: uniform buffers"
 
 GLFWwindow* window=NULL;
 
@@ -43,6 +43,10 @@ class VulkanApp
             delete m_pPipeline;
             vkDestroyRenderPass(m_vkCore.GetDevice(), m_renderPass, VK_NULL_HANDLE);
             m_mesh.Destroy(m_device);
+
+            for (int i = 0; i < m_uniformBuffers.size(); i++) {
+			    m_uniformBuffers[i].Destroy(m_device);
+		    }
         }
 
         void Init(const char* pAppName, GLFWwindow* pWindow) 
@@ -56,6 +60,7 @@ class VulkanApp
             m_frameBuffers=m_vkCore.CreateFrameBuffer(m_renderPass);
             CreateShaders();
             CreateVertexBuffer();
+            CreateUniformBuffers();
             CreatePipeline();
             CreateCommandBuffers();
             RecordCommandBuffers();
@@ -64,6 +69,7 @@ class VulkanApp
         void RenderScene()
         {
             uint32_t imageIndex = m_pQueue->AcquireNextImage();
+            UpdateUniformBuffers(imageIndex);
             m_pQueue->SubmitCommandBufferAsync(m_commandBuffers[imageIndex]);
             m_pQueue->PresentImage(imageIndex); 
         }
@@ -101,13 +107,21 @@ class VulkanApp
 
         }
 
+        struct UniformData {
+            glm::mat4 WVP;
+        };
+
+        void CreateUniformBuffers()
+        {
+            m_vkCore.CreateUniformBuffers(sizeof(UniformData), m_uniformBuffers);//TODO: how to pass &m_uniformBuffers without lvalue complaints
+        }
+
         void CreateCommandBuffers()
         {
             m_commandBuffers.resize(m_numSwapchainImages);
             m_vkCore.CreateCommandBuffers(m_numSwapchainImages, m_commandBuffers.data());
             M4_LOG("CreateCommandBuffers...");
         }
-
 
 
         void CreatePipeline(){
@@ -119,7 +133,9 @@ class VulkanApp
                 m_shaderModule_vert,
                 m_shaderModule_frag,
                 &m_mesh,
-                m_numSwapchainImages
+                m_numSwapchainImages,
+                m_uniformBuffers,
+                sizeof(UniformData)
             );
         }
 
@@ -184,6 +200,12 @@ class VulkanApp
             M4_LOG("RecordCommandBuffers...");
         }
 
+        void UpdateUniformBuffers(uint32_t imageIndex)
+        {
+            glm::mat4 WVP=glm::mat4(1.0);
+            m_uniformBuffers[imageIndex].Update(m_device,&WVP, sizeof(WVP));
+        }
+
         GLFWwindow* m_pWindow=VK_NULL_HANDLE;
         m4VK::VulkanCore m_vkCore;
         m4VK::VulkanQueue* m_pQueue = VK_NULL_HANDLE;
@@ -196,6 +218,10 @@ class VulkanApp
         VkShaderModule m_shaderModule_frag;
         m4VK::GraphicsPipeline* m_pPipeline = NULL;
         m4VK::SimpleMesh m_mesh;
+        std::vector<m4VK::BufferAndMemory> m_uniformBuffers;
+        //GLMCameraFirstPerson* m_gameCamera=NULL; //CONTINUE
+        int m_windowWidth=0;
+        int m_windowHeight=0;
 };
 
 int main(int argc, char* argv[])

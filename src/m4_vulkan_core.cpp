@@ -470,7 +470,7 @@ namespace m4VK
         }
     }
 
-     BufferAndMemory VulkanCore::CreateVertexBuffer(const void* pVertices, size_t size){
+    BufferAndMemory VulkanCore::CreateVertexBuffer(const void* pVertices, size_t size){
 
         //1 create staging buffer
         VkBufferUsageFlags usage=VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -508,6 +508,32 @@ namespace m4VK
         //7 release resources
         stagingBam.Destroy(m_device);
 
+        return bam;
+    }
+
+    void VulkanCore::GetFrameBufferSize(int&width, int& height) const
+    {
+        glfwGetWindowSize(m_pWindow,&width,&height);
+    }
+
+    void VulkanCore::CreateUniformBuffers(size_t size, std::vector<BufferAndMemory> &uniformBuffers )
+    {
+
+        // uniformBuffers.resize();
+
+        for (int i=0; i< m_swapChainImages.size();i++)
+        {
+            uniformBuffers.push_back(CreateUniformBuffer(size));
+            M4_LOG("create uniform buffer [%d]",i);
+        }
+
+    }
+
+    BufferAndMemory VulkanCore::CreateUniformBuffer(size_t size){
+        BufferAndMemory bam;
+        VkBufferUsageFlags usage=VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        VkMemoryPropertyFlags props=VK_MEMORY_PROPERTY_HOST_COHERENT_BIT|VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        bam=CreateBuffer(size,usage,props);
         return bam;
     }
 
@@ -598,4 +624,13 @@ namespace m4VK
         }
     }
 
+    void BufferAndMemory::Update(VkDevice device, const void* pData, size_t size)
+    {
+        void * pMem=NULL;
+        VkResult result=vkMapMemory(device,m_memory,0,size,0,&pMem);
+        CHECK_VK_RESULT(result,"BufferAndMemory::Update - vkMapmemory")
+        memcpy(pMem, pData,size);
+        vkUnmapMemory(device, m_memory);
+
+    }
 }

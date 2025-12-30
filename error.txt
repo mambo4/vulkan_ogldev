@@ -1,1 +1,14 @@
-m_descriptorPool
+
+----------- destructor ~VulkanCore() --------------
+vkDestroyCommandPool
+VulkanQueue::Destroy: Semaphores destroyed successfully.
+vkDestroyImageView[0]
+vkDestroyImageView[1]
+vkDestroyImageView[2]
+vkDestroySwapchainKHR
+
+***** ERROR(VALIDATION) ************************************************************
+vkDestroyDevice(): Object Tracking - For VkDevice 0x198cdcb19b0, VkBuffer 0x1f000000001f has not been destroyed.
+The Vulkan spec states: All child objects created on device that can be destroyed or freed must have been destroyed or freed prior to destroying device (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-vkDestroyDevice-device-05137) 
+        Objects[0]: UNKNOWN_OBJECT_TYPE:0x1f000000001f
+************************************************************

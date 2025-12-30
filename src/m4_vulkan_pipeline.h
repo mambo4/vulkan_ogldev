@@ -18,7 +18,9 @@ namespace m4VK{
                 VkShaderModule shaderModule_vert,
                 VkShaderModule shaderModule_frag,
                 const SimpleMesh* pMesh,
-                int imageCount
+                int imageCount,
+                std::vector<BufferAndMemory>& uniformBuffers,
+                int uniformDataSize
             );
 
             ~GraphicsPipeline();
@@ -27,10 +29,10 @@ namespace m4VK{
         
         private:
             void CreateDescriptorPool(int imageCount);
-	        void CreateDescriptorSets(int imageCount,const SimpleMesh* pMesh);
-            void CreateDescriptorSetLayout();
+	        void CreateDescriptorSets(int imageCount,const SimpleMesh* pMesh, std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
+            void CreateDescriptorSetLayout(std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
             void AllocateDescriptorSets(int imageCount);
-            void UpdateDescriptorSets(int imageCount, const SimpleMesh* pMesh);
+            void UpdateDescriptorSets(int imageCount, const SimpleMesh* pMesh,std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
             VkDevice m_device;
             VkPipeline m_pipeline;
             VkPipelineLayout m_pipelineLayout;
