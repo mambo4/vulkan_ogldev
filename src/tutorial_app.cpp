@@ -3,6 +3,8 @@
 #include "m4_vulkan_pipeline.h"
 #include "colors.h"
 #include "m4_vulkan_simple_mesh.h"
+#include "m4_vulkan_glfw.h"
+#include "m4_glm_camera.h"
 
 //std
 #include <stdio.h>
@@ -21,20 +23,24 @@
 
 #define APP_NAME "OGL_tutorial_17: uniform buffers"
 
-GLFWwindow* window=NULL;
+// GLFWwindow* window=NULL;
 
-void GLFW_Key_Callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GLFW_TRUE);
-}
+// void GLFW_Key_Callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+// {
+//     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+//         glfwSetWindowShouldClose(window, GLFW_TRUE);
+// }
 
-//todo: mouse callback
 
-class VulkanApp
+class VulkanApp: public m4VK::GLFWCallbacks
 {
     public:
-        VulkanApp() {}
+        VulkanApp(int width, int height) 
+        {
+            m_windowWidth=width;
+            m_windowHeight=height;
+        }
+
         ~VulkanApp() {
             m_vkCore.FreeCommandBuffers((uint32_t)m_commandBuffers.size(), m_commandBuffers.data());
             m_vkCore.DestroyFrameBuffers(m_frameBuffers);
@@ -49,10 +55,10 @@ class VulkanApp
 		    }
         }
 
-        void Init(const char* pAppName, GLFWwindow* pWindow) 
+        void Init(const char* pAppName) 
         {
-            m_pWindow=pWindow;
-            m_vkCore.Init(pAppName, pWindow);
+            m_pWindow=m4VK::glfw_vulkan_init(WINDOW_WIDTH,WINDOW_HEIGHT,pAppName);
+            m_vkCore.Init(pAppName, m_pWindow);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
             m_device=m_vkCore.GetDevice();
             m_pQueue = m_vkCore.GetQueue();
@@ -64,6 +70,8 @@ class VulkanApp
             CreatePipeline();
             CreateCommandBuffers();
             RecordCommandBuffers();
+            DefaultCreateCameraPers();
+            m4VK::glfw_vulkan_set_callbacks(m_pWindow, this);
         }
         
         void RenderScene()
@@ -72,6 +80,54 @@ class VulkanApp
             UpdateUniformBuffers(imageIndex);
             m_pQueue->SubmitCommandBufferAsync(m_commandBuffers[imageIndex]);
             m_pQueue->PresentImage(imageIndex); 
+        }
+
+        void Key(GLFWwindow* pWindow, int key, int scancode, int action, int mods)
+        {
+            bool handled=true;
+
+            switch(key)
+            {
+                case GLFW_KEY_ESCAPE:
+                case GLFW_KEY_Q:
+                    glfwDestroyWindow(m_pWindow);
+                    glfwTerminate();
+                    exit(0);
+                default:
+                    handled=false;
+            }
+
+            if(!handled)
+            {
+                handled=GLFWCameraHandler(m_pGameCamera->m_movement, key, action, mods);
+            }
+        }
+
+        void MouseMove(GLFWwindow* pWindow, double  xpos, double ypos)
+        {
+            m_pGameCamera->SetMousePos( (float)xpos,(float)ypos );
+        }
+
+        void MouseButton(GLFWwindow* pWindow, int button, int action, int mods)
+        {
+            m_pGameCamera->HandleMouseButton(button, action, mods);
+        }
+        
+        void ExecuteMainLoop()
+        {
+            float time=(float)glfwGetTime();
+
+            while(!glfwWindowShouldClose(m_pWindow))
+            {
+                float timeNow=(float)glfwGetTime();
+                float dt=timeNow-time;
+                m_pGameCamera->Update(dt);
+                RenderScene();
+                time=timeNow;
+                glfwPollEvents();
+            }
+ 
+            glfwTerminate();
         }
 
     private:
@@ -114,6 +170,41 @@ class VulkanApp
         void CreateUniformBuffers()
         {
             m_vkCore.CreateUniformBuffers(sizeof(UniformData), m_uniformBuffers);//TODO: how to pass &m_uniformBuffers without lvalue complaints
+        }
+
+        void DefaultCreateCameraPers()
+        {
+            float FOV=45.0f;
+            float zNear=0.1f;
+            float zFar=1000.0f;
+
+            DefaultCreateCameraPers(FOV,zNear,zFar);
+
+        }
+
+        void DefaultCreateCameraPers(float FOV, float zNear,float zFar)
+        {
+
+            if ((m_windowWidth==0)||(m_windowHeight==0))
+            {
+                printf("invalid window dimension w: %d ,. h:%d",m_windowWidth,m_windowHeight);
+                exit(1);
+            }
+
+            if (m_pGameCamera)
+            {
+                printf("camera already initilaized");
+                exit(1);
+            }
+
+            PespectiveProjectionInfo projectionInfo ={FOV,(float)m_windowWidth,(float)m_windowHeight, zNear,zFar};
+            
+            glm::vec3 pos(0.0f,0.0f,-5.0f);
+            glm::vec3 target(0.0f,0.0f,1.0f);
+            glm::vec3 up(0.0f,1.0f,0.0f);
+
+            m_pGameCamera= new GLMCameraFirstPerson(pos, target,up,projectionInfo );
+
         }
 
         void CreateCommandBuffers()
@@ -202,7 +293,12 @@ class VulkanApp
 
         void UpdateUniformBuffers(uint32_t imageIndex)
         {
-            glm::mat4 WVP=glm::mat4(1.0);
+            static float theta =0.0f;
+            glm::mat4 rotateMatrix=glm::mat4(1.0);
+            rotateMatrix=glm::rotate(rotateMatrix, glm::radians(theta), glm::normalize(glm::vec3(0.0f,0.0f,1.0f)));
+            theta+=0.01f;
+            glm::mat4 VP=m_pGameCamera->GetVPMatrix();
+            glm::mat4 WVP=VP*rotateMatrix;
             m_uniformBuffers[imageIndex].Update(m_device,&WVP, sizeof(WVP));
         }
 
@@ -219,46 +315,14 @@ class VulkanApp
         m4VK::GraphicsPipeline* m_pPipeline = NULL;
         m4VK::SimpleMesh m_mesh;
         std::vector<m4VK::BufferAndMemory> m_uniformBuffers;
-        //GLMCameraFirstPerson* m_gameCamera=NULL; //CONTINUE
+        GLMCameraFirstPerson* m_pGameCamera=NULL; //CONTINUE
         int m_windowWidth=0;
         int m_windowHeight=0;
 };
 
 int main(int argc, char* argv[])
 {
-    if (!glfwInit())
-    {
-        fprintf(stderr, "Failed to initialize GLFW\n");
-        return EXIT_FAILURE;
-    }
-
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // No OpenGL context
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // Non-resizable window
-
-    VulkanApp App;
-     
-
-
-    GLFWwindow* pWindow = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, APP_NAME, NULL, NULL);
-
-    if (!pWindow)
-    {
-        fprintf(stderr, "Failed to create GLFW window\n");
-        glfwTerminate();
-        return EXIT_FAILURE;
-    }
-
-    glfwSetKeyCallback(pWindow, GLFW_Key_Callback);
-
-    App.Init(APP_NAME,pWindow);
-
-    while (!glfwWindowShouldClose(pWindow))
-    {
-        App.RenderScene();
-        glfwPollEvents();
-    }
-
-    glfwDestroyWindow(pWindow);
-    glfwTerminate();
-    return EXIT_SUCCESS;
+   VulkanApp App(WINDOW_WIDTH,WINDOW_HEIGHT);
+   App.Init(APP_NAME);
+   App.ExecuteMainLoop();
 }

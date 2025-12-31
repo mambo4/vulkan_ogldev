@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "name": "(MSVC) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/bin/main.exe",
+            "cwd": "${fileDirname}",
+            "stopAtEntry": false,
+            "externalConsole": true,
+            "justMyCode": false
+        }
+    ]
+}

@@ -41,9 +41,9 @@
                 "OSDependent.lib",
                 "GenericCodeGen.lib",
                 "MachineIndependent.lib",
-                "glslang-default-resource-limits.lib",
-                ">", // This redirects both standard output and standard error
-                "${workspaceFolder}/build_output.log" 
+                "glslang-default-resource-limits.lib"
+                // ">", // This redirects both standard output and standard error
+                // "${workspaceFolder}/build_output.log" 
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

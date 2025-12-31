@@ -1,11 +1,14 @@
+m4_glm_camera.cpp
 m4_vulkan_core.cpp
 m4_vulkan_device.cpp
+m4_vulkan_glfw.cpp
 m4_vulkan_pipeline.cpp
 m4_vulkan_queue.cpp
 m4_vulkan_shader.cpp
 m4_vulkan_utils.cpp
 tutorial_app.cpp
 Generating Code...
+LINK : C:\vulkan_ogldev\bin\main.exe not found or not built by the last incremental link; performing full link
 glslang.lib(glslang_c_interface.obj) : warning LNK4099: PDB 'glslang.pdb' was not found with 'glslang.lib(glslang_c_interface.obj)' or at 'C:\vulkan_ogldev\bin\glslang.pdb'; linking object as if no debug info
 glslang.lib(spirv_c_interface.obj) : warning LNK4099: PDB 'glslang.pdb' was not found with 'glslang.lib(spirv_c_interface.obj)' or at 'C:\vulkan_ogldev\bin\glslang.pdb'; linking object as if no debug info
 glslang.lib(ShaderLang.obj) : warning LNK4099: PDB 'glslang.pdb' was not found with 'glslang.lib(ShaderLang.obj)' or at 'C:\vulkan_ogldev\bin\glslang.pdb'; linking object as if no debug info
