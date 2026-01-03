@@ -5,46 +5,47 @@ GLMCameraFirstPerson::GLMCameraFirstPerson(
     const glm::vec3& pos,
     const glm::vec3& target,
     const glm::vec3& up,
-    PespectiveProjectionInfo& pespectiveProjectionInfo)
+    PerspectiveProjectionInfo& perspectiveProjectionInfo)
 {
-    Init(pos,target,up,pespectiveProjectionInfo);
+    Init(pos,target,up,perspectiveProjectionInfo);
 }
 
 void GLMCameraFirstPerson::Init(
     const glm::vec3& pos,
     const glm::vec3& target,
     const glm::vec3& up,
-    PespectiveProjectionInfo& pespectiveProjectionInfo)
+    PerspectiveProjectionInfo& perspectiveProjectionInfo)
 {
     m_cameraPos=pos;
     m_up=up;
+    m_perspectiveProjectionInfo=perspectiveProjectionInfo;
 
-    float aspect=(float) pespectiveProjectionInfo.width/pespectiveProjectionInfo.height;
+    float aspect=(float) perspectiveProjectionInfo.width/perspectiveProjectionInfo.height;
 
     if (CAMERA_LEFT_HANDED) {
         m_cameraRot=glm::lookAtLH(pos, target, up);
         m_perspectiveProjection= glm::perspectiveLH_ZO(
-            pespectiveProjectionInfo.FOV,
+            perspectiveProjectionInfo.FOV,
             aspect,
-            pespectiveProjectionInfo.zNear,
-            pespectiveProjectionInfo.zFar);
+            perspectiveProjectionInfo.zNear,
+            perspectiveProjectionInfo.zFar);
     }else{
         m_cameraRot=glm::lookAtRH(pos, target, up);
         m_perspectiveProjection= glm::perspectiveRH_ZO(
-            pespectiveProjectionInfo.FOV,
+            perspectiveProjectionInfo.FOV,
             aspect,
-            pespectiveProjectionInfo.zNear,
-            pespectiveProjectionInfo.zFar);
+            perspectiveProjectionInfo.zNear,
+            perspectiveProjectionInfo.zFar);
     }
 }
 
 void GLMCameraFirstPerson::Update(float dt)
 {
-    if(m_mouseSate.m_buttonPressed){
+    if(m_mouseState.m_buttonPressed){
         UpdateCameraOrientation();
     }
-    //printf("camera rot %d,%d,%d,%d\n",m_cameraRot.x,m_cameraRot.y,m_cameraRot.z,m_cameraRot.w);
-    m_oldMousePos =m_mouseSate.m_pos;
+    
+    m_oldMousePos = m_mouseState.m_pos;
 
     UpdateVelocity(dt);
     m_cameraPos+= m_velocity*dt;
@@ -53,22 +54,22 @@ void GLMCameraFirstPerson::Update(float dt)
 
 void GLMCameraFirstPerson::SetMousePos( float xpos, float ypos )
 {
-	m_mouseState.m_pos.x = xpos / (float)m_pespectiveProjectionInfo.width;
-	m_mouseState.m_pos.y = ypos / (float)m_pespectiveProjectionInfo.height;
-    
+    float new_x=( xpos / (float)m_perspectiveProjectionInfo.width);
+    float new_y=(ypos / (float)m_perspectiveProjectionInfo.height);
+    glm::vec2 new_pos=glm::vec2(new_x,new_y);
+    m_mouseState.m_pos=new_pos;
 }
 
 
 void GLMCameraFirstPerson::HandleMouseButton(int button, int action, int mods)
 {
     if (button==GLFW_MOUSE_BUTTON_LEFT){
-        m_mouseSate.m_buttonPressed= (action==GLFW_PRESS);
-        
+        m_mouseState.m_buttonPressed= (action==GLFW_PRESS);
     }
 }
 
 void GLMCameraFirstPerson::UpdateCameraOrientation(){
-    glm::vec2 deltaMouse=m_mouseSate.m_pos-m_oldMousePos;
+    glm::vec2 deltaMouse=m_mouseState.m_pos-m_oldMousePos;
     glm::quat deltaRot= glm::quat(glm::vec3(m_mouseSpeed*deltaMouse.y,m_mouseSpeed*deltaMouse.x,0.0f));
     m_cameraRot=glm::normalize(deltaRot*m_cameraRot);
     SetUpVector();

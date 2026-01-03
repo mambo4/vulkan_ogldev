@@ -215,7 +215,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 exit(1);
             }
 
-            PespectiveProjectionInfo projectionInfo ={FOV,(float)m_windowWidth,(float)m_windowHeight, zNear,zFar};
+            PerspectiveProjectionInfo projectionInfo ={FOV,(float)m_windowWidth,(float)m_windowHeight, zNear,zFar};
             
             glm::vec3 pos(0.0f,0.0f,-5.0f);
             glm::vec3 target(0.0f,0.0f,1.0f);
