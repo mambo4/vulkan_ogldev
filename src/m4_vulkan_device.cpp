@@ -65,8 +65,6 @@ namespace m4VK {
         }
     }
 
-    // VulkanPhysicalDevices::VulkanPhysicalDevices() {}
-    // ~VulkanPhysicalDevices() {}
 
     void VulkanPhysicalDevices::Init(const VkInstance& instance, const VkSurfaceKHR& surface){
 

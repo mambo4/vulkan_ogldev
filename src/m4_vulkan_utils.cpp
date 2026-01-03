@@ -117,7 +117,7 @@
 
     }
 
-    void m4VK::writeFileBinary(const char* pFileName, const void* pData, int size)//totally vibe coded here lets see if it works
+    void m4VK::writeFileBinary(const char* pFileName, const void* pData, int size)
     {
         std::ofstream file(pFileName, std::ios::binary);
         if (!file.is_open()) {
@@ -128,3 +128,12 @@
         file.write(static_cast<const char*>(pData), size);
         file.close();
     }
+
+int m4VK::GetBytesPerPixel(VkFormat format)
+{
+    //todo: implement for multiple formats
+    int bytes=4;
+    M4_LOG("GetBytesPerTexFormat() always returns 4 bytes per pixel. Format: (%d)",format);
+    return ( bytes);
+
+}

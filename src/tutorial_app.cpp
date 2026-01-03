@@ -19,7 +19,9 @@
 #define WINDOW_WIDTH 1280      
 #define WINDOW_HEIGHT 720
 
-
+#define TEXTURE_00 "../assets/texture/purple_brick.jpg"
+#define VERT_SHADER "../shaders/test.vert"
+#define FRAG_SHADER "../shaders/test.frag"
 
 #define APP_NAME "OGL_tutorial_17: uniform buffers"
 
@@ -65,7 +67,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
             m_renderPass=m_vkCore.CreateRenderPassSimple();
             m_frameBuffers=m_vkCore.CreateFrameBuffer(m_renderPass);
             CreateShaders();
-            CreateVertexBuffer();
+            CreateMesh();
             CreateUniformBuffers();
             CreatePipeline();
             CreateCommandBuffers();
@@ -133,8 +135,15 @@ class VulkanApp: public m4VK::GLFWCallbacks
     private:
         void CreateShaders()
         {
-            m_shaderModule_vert=m4VK::createShaderModuleFromText(m_device,"../shaders/test.vert");
-            m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,"../shaders/test.frag");
+            m_shaderModule_vert=m4VK::createShaderModuleFromText(m_device,VERT_SHADER);
+            m_shaderModule_frag=m4VK::createShaderModuleFromText(m_device,FRAG_SHADER);
+        }
+
+
+        void CreateMesh()
+        {
+            CreateVertexBuffer();
+            LoadTexture();
         }
 
         void CreateVertexBuffer(){
@@ -152,15 +161,24 @@ class VulkanApp: public m4VK::GLFWCallbacks
             };
 
             std::vector<Vertex>vertices ={
-                Vertex({-0.5f,-0.5f,0.0f},{0.2f,0.8f}),
-                Vertex({0.5f,-0.5f,0.0f},{0.8f,0.8f}),
-                Vertex({0.0f,0.5f,0.0f},{0.5f,0.2f})
+                Vertex({-0.5f,-0.5f,0.0f},{0.0f,0.0f}),
+                Vertex({0.5f,-0.5f,0.0f},{0.0f,1.0f}),
+                Vertex({-0.5f,0.5f,0.0f},{1.0f,0.0f}),
+                Vertex({-0.5f,0.5f,0.0f},{1.0f,0.0f}),
+                Vertex({0.5f,-0.5f,0.0f},{0.0f,1.0f}),
+                Vertex({0.5f,0.5f,0.0f},{1.0f,1.0f}),
             };
 
             m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
             m_mesh.m_bam=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize );
             
 
+        }
+
+        void LoadTexture()
+        {
+            m_mesh.m_pTexture = new m4VK::VulkanTexture;
+            m_vkCore.CreateTexture(TEXTURE_00,*(m_mesh.m_pTexture));            
         }
 
         struct UniformData {
@@ -226,13 +244,13 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 &m_mesh,
                 m_numSwapchainImages,
                 m_uniformBuffers,
-                sizeof(UniformData)
+                sizeof(UniformData),
+                false
             );
         }
 
         void RecordCommandBuffers()
         {
-
             VkClearColorValue clearColor = COLOR_BLACK;
             VkClearValue clearValue;
             clearValue.color = clearColor;
@@ -248,8 +266,6 @@ class VulkanApp: public m4VK::GLFWCallbacks
             renderPassBeginInfo.clearValueCount = 1;
             renderPassBeginInfo.pClearValues = &clearValue;
 
-
-
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             subresourceRange.baseMipLevel = 0;
@@ -257,7 +273,6 @@ class VulkanApp: public m4VK::GLFWCallbacks
             subresourceRange.baseArrayLayer = 0;
             subresourceRange.layerCount = 1;
 
- 
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
 
@@ -275,7 +290,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 
                 m_pPipeline->bind(m_commandBuffers[i],i);
 
-                 uint32_t vertCount =3;
+                 uint32_t vertCount =6;
                  uint32_t instanceCount=1;
                  uint32_t firstVertex=0;
                  uint32_t firstInstance=0;
@@ -315,7 +330,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
         m4VK::GraphicsPipeline* m_pPipeline = NULL;
         m4VK::SimpleMesh m_mesh;
         std::vector<m4VK::BufferAndMemory> m_uniformBuffers;
-        GLMCameraFirstPerson* m_pGameCamera=NULL; //CONTINUE
+        GLMCameraFirstPerson* m_pGameCamera=NULL;
         int m_windowWidth=0;
         int m_windowHeight=0;
 };

@@ -1,14 +1,46 @@
 
------------ destructor ~VulkanCore() --------------
-vkDestroyCommandPool
-VulkanQueue::Destroy: Semaphores destroyed successfully.
-vkDestroyImageView[0]
-vkDestroyImageView[1]
-vkDestroyImageView[2]
-vkDestroySwapchainKHR
-
 ***** ERROR(VALIDATION) ************************************************************
-vkDestroyDevice(): Object Tracking - For VkDevice 0x198cdcb19b0, VkBuffer 0x1f000000001f has not been destroyed.
-The Vulkan spec states: All child objects created on device that can be destroyed or freed must have been destroyed or freed prior to destroying device (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-vkDestroyDevice-device-05137) 
-        Objects[0]: UNKNOWN_OBJECT_TYPE:0x1f000000001f
+vkDestroyDevice(): Object Tracking - For VkDevice 0x2bca2ab0880, VkBuffer 0x190000000019 has not been destroyed.
+The Vulkan spec states: All child objects created on device that can be destroyed or freed must have been destroyed or freed prior to destroying device (https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#VUID-vkDestroyDevice-device-05137)
+        Objects[0]: UNKNOWN_OBJECT_TYPE:0x190000000019
 ************************************************************
+
+
+Create Vertex Buffer(0)
+
+staging
+    0x0000170000000017 {...}
+    0x0000180000000018 {...}
+
+bam
+    0x0000190000000019 {...}
+    0x00001a000000001a {...}
+
+stagingTexture
+    0x00001d000000001d {...}
+    0x00001e000000001e {...}
+
+CreateVertexBuffer(1) //OK why are we creating the vertex buffer twice? May be the problem. The second one def gets usaed later
+staging
+    0x0000210000000021 {...}
+    0x0000220000000022 {...}
+bam
+    0x0000230000000023 {...}
+    0x0000240000000024 {...}
+
+
+CreateUniformBuffers
+    0x0000250000000025 {...}
+    0x0000260000000026 {...}
+
+    0x0000270000000027 {...}
+    0x0000280000000028 {...}
+
+    0x0000290000000029 {...}
+    0x00002a000000002a {...}
+
+
+VkBuffer 0x190000000019 has not been destroyed.
+VkDeviceMemory 0x1a000000001a has not been destroyed.
+
+So the first create vertex buffer never gets cleaned up!!!

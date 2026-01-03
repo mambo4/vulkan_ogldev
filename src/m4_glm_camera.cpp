@@ -208,9 +208,6 @@ bool GLFWCameraHandler(CameraMovement& movement, int key, int action, int mods)
             handled=false;
     }
     
-    if(press){
-        M4_LOG("GLFWCameraHandler: !GLFW_RELEASE");
-    }
 
     if (mods & GLFW_MOD_SHIFT) {
         movement.fast = press;

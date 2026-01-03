@@ -23,5 +23,6 @@ namespace m4VK {
     bool readFileText(const char* pFileName, std::string& outFile);
     char* readFileBinary(const char* pFileName, int& size);
     void writeFileBinary(const char* pFilename, const void* pData, int size);
+    int GetBytesPerPixel(VkFormat format);
 
 }

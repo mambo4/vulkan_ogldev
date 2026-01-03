@@ -20,7 +20,8 @@ namespace m4VK{
                 const SimpleMesh* pMesh,
                 int imageCount,
                 std::vector<BufferAndMemory>& uniformBuffers,
-                int uniformDataSize
+                int uniformDataSize,
+                bool DepthEnabled
             );
 
             ~GraphicsPipeline();
@@ -30,14 +31,14 @@ namespace m4VK{
         private:
             void CreateDescriptorPool(int imageCount);
 	        void CreateDescriptorSets(int imageCount,const SimpleMesh* pMesh, std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
-            void CreateDescriptorSetLayout(std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
+            void CreateDescriptorSetLayout(std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize, VulkanTexture* pTexture);
             void AllocateDescriptorSets(int imageCount);
             void UpdateDescriptorSets(int imageCount, const SimpleMesh* pMesh,std::vector<BufferAndMemory>& uniformBuffers, int UniformDataSize);
             VkDevice m_device;
             VkPipeline m_pipeline;
             VkPipelineLayout m_pipelineLayout;
             VkDescriptorPool m_descriptorPool;
-            VkDescriptorSetLayout m_decscriptorSetLayout;
+            VkDescriptorSetLayout m_descriptorSetLayout;
             std::vector<VkDescriptorSet> m_descriptorSets;
     };
 
