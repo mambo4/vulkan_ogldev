@@ -103,6 +103,14 @@ namespace m4VK{
             infoPipelineLayout.pSetLayouts= VK_NULL_HANDLE;
         }
 
+        VkPipelineDepthStencilStateCreateInfo infoDepthStencilState{};
+        infoDepthStencilState.sType=VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        infoDepthStencilState.depthTestEnable=VK_TRUE;
+        infoDepthStencilState.depthWriteEnable=VK_TRUE;
+        infoDepthStencilState.depthCompareOp=VK_COMPARE_OP_LESS;
+        infoDepthStencilState.maxDepthBounds=1.0;
+               
+        
         VkResult result=vkCreatePipelineLayout(m_device,&infoPipelineLayout, VK_NULL_HANDLE, &m_pipelineLayout);
         CHECK_VK_RESULT(result,"vkCreatePipelineLayout");
 
@@ -121,6 +129,7 @@ namespace m4VK{
         infoGraphicsPipeline.subpass=0;
         infoGraphicsPipeline.basePipelineHandle=VK_NULL_HANDLE;
         infoGraphicsPipeline.basePipelineIndex=-1;
+        infoGraphicsPipeline.pDepthStencilState =depthEnabled? &infoDepthStencilState: VK_NULL_HANDLE;
 
         result= vkCreateGraphicsPipelines(m_device,VK_NULL_HANDLE,1,&infoGraphicsPipeline, VK_NULL_HANDLE, &m_pipeline);
         CHECK_VK_RESULT(result,"vkCreateGraphicsPipelines");
@@ -251,10 +260,10 @@ namespace m4VK{
 
     void GraphicsPipeline::UpdateDescriptorSets(int imageCount, const SimpleMesh* pMesh,std::vector<BufferAndMemory>& uniformBuffers, int uniformSize)
     {
-        VkDescriptorBufferInfo infoDescriptorBuffer{};
-        infoDescriptorBuffer.buffer=pMesh->m_bam.m_buffer;
-        infoDescriptorBuffer.offset=0;
-        infoDescriptorBuffer.range=pMesh->m_vertexBufferSize;
+        VkDescriptorBufferInfo meshBufferInfo{};
+        meshBufferInfo.buffer=pMesh->m_bam.m_buffer;
+        meshBufferInfo.offset=0;
+        meshBufferInfo.range=pMesh->m_vertexBufferSize;
 
         VkDescriptorImageInfo imageInfo;
 
@@ -264,19 +273,19 @@ namespace m4VK{
             imageInfo.imageLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         }
 
-        std::vector<VkWriteDescriptorSet> writeDescriptorSets;
+        std::vector<VkWriteDescriptorSet> descriptorSets;
         for ( size_t i=0; i<imageCount; i++)
         {
-            VkWriteDescriptorSet writeDescriptorSet{};
-            writeDescriptorSet.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSet.dstSet=m_descriptorSets[i];
-            writeDescriptorSet.dstBinding=0;
-            writeDescriptorSet.dstArrayElement=0;
-            writeDescriptorSet.descriptorCount=1;
-            writeDescriptorSet.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            writeDescriptorSet.pBufferInfo = &infoDescriptorBuffer;
+            VkWriteDescriptorSet meshDescriptor{};
+            meshDescriptor.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            meshDescriptor.dstSet=m_descriptorSets[i];
+            meshDescriptor.dstBinding=0;
+            meshDescriptor.dstArrayElement=0;
+            meshDescriptor.descriptorCount=1;
+            meshDescriptor.descriptorType=VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            meshDescriptor.pBufferInfo = &meshBufferInfo;
 
-            writeDescriptorSets.push_back(writeDescriptorSet);
+            descriptorSets.push_back(meshDescriptor);
 
             if (uniformBuffers.size()>0){   
                 VkDescriptorBufferInfo buffer_info_uniform{};
@@ -284,33 +293,33 @@ namespace m4VK{
                 buffer_info_uniform.offset=0;
                 buffer_info_uniform.range=(VkDeviceSize)uniformSize;
 
-                VkWriteDescriptorSet writeDescriptorSet_buffer{};
-                writeDescriptorSet_buffer.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSet_buffer.dstSet=m_descriptorSets[i];
-                writeDescriptorSet_buffer.dstBinding=1;
-                writeDescriptorSet_buffer.dstArrayElement=0;
-                writeDescriptorSet_buffer.descriptorCount=1;
-                writeDescriptorSet_buffer.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                writeDescriptorSet_buffer.pBufferInfo = &buffer_info_uniform;
+                VkWriteDescriptorSet bufferDescriptor{};
+                bufferDescriptor.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                bufferDescriptor.dstSet=m_descriptorSets[i];
+                bufferDescriptor.dstBinding=1;
+                bufferDescriptor.dstArrayElement=0;
+                bufferDescriptor.descriptorCount=1;
+                bufferDescriptor.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                bufferDescriptor.pBufferInfo = &buffer_info_uniform;
 
-                writeDescriptorSets.push_back(writeDescriptorSet_buffer);
+                descriptorSets.push_back(bufferDescriptor);
 
             }
 
             if(pMesh->m_pTexture){
-                VkWriteDescriptorSet writeDescriptorSet_texture{};
-                writeDescriptorSet_texture.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSet_texture.dstSet=m_descriptorSets[i];
-                writeDescriptorSet_texture.dstBinding=2;
-                writeDescriptorSet_texture.dstArrayElement=0;
-                writeDescriptorSet_texture.descriptorCount=1;
-                writeDescriptorSet_texture.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                writeDescriptorSet_texture.pImageInfo=&imageInfo;
+                VkWriteDescriptorSet meshTextureDescriptor{};
+                meshTextureDescriptor.sType=VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                meshTextureDescriptor.dstSet=m_descriptorSets[i];
+                meshTextureDescriptor.dstBinding=2;
+                meshTextureDescriptor.dstArrayElement=0;
+                meshTextureDescriptor.descriptorCount=1;
+                meshTextureDescriptor.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                meshTextureDescriptor.pImageInfo=&imageInfo;
 
-                writeDescriptorSets.push_back(writeDescriptorSet_texture);
+                descriptorSets.push_back(meshTextureDescriptor);
             }
 
-            vkUpdateDescriptorSets(m_device,(uint32_t)writeDescriptorSets.size(),writeDescriptorSets.data(),0,VK_NULL_HANDLE);
+            vkUpdateDescriptorSets(m_device,(uint32_t)descriptorSets.size(),descriptorSets.data(),0,VK_NULL_HANDLE);
             M4_LOG("UpdateDescriptorSets");
         }
     }

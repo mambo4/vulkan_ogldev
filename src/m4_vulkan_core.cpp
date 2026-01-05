@@ -54,11 +54,12 @@ namespace m4VK
             M4_LOG("vkDestroyImageView[%d]",i  );
         }
         
-        //if (m_depthEnabled) {
-		//  for (int i = 0; i < m_depthImages.size(); i++) {
-		// 	    m_depthImages[i].Destroy(m_device);
-		//  }
-        //}
+        if (m_depthEnabled) {
+		 for (int i = 0; i < m_depthImages.size(); i++) {
+			    m_depthImages[i].Destroy(m_device);
+                M4_LOG("Destroy depth VulkanTexture [%d]",i  );
+		 }
+        }
 
         vkDestroySwapchainKHR(m_device, m_swapChain, VK_NULL_HANDLE);
         M4_LOG("vkDestroySwapchainKHR");
@@ -90,21 +91,27 @@ namespace m4VK
 
     }
 
-    void VulkanCore::Init(const char* pAppName, GLFWwindow* pWindow)
+    void VulkanCore::Init(const char* pAppName, GLFWwindow* pWindow,bool depthEnabled)
     {
         M4_LOG("\n===================================================\n");
         M4_LOG("-----------  VulkanCore::Init() --------------\n");
         m_pWindow = pWindow;
+        m_depthEnabled = depthEnabled;
         CreateInstance(pAppName);
         CreateDebugCallback();
         CreateSurface();
         m_physicalDevices.Init(m_instance, m_surface);
         m_queueFamilyIndex =  m_physicalDevices.SelectPhysicalDevice(VK_QUEUE_GRAPHICS_BIT, true);
+        m_windowWidth = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.width;
+        m_windowHeight = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.height;
         CreateDevice();
         CreateSwapChain();
         CreateCommandBufferPool();
         m_queue.Init(m_device, m_swapChain, m_queueFamilyIndex, 0);
         CreateCommandBuffers(1,&m_copyCommandBuffer);
+        if (depthEnabled){
+            CreateDepthResources();
+        }
     }
 
     void VulkanCore::CreateInstance(const char *pAppName)
@@ -802,18 +809,41 @@ namespace m4VK
 
         VkAttachmentReference colorAttachmentRef = {};
         colorAttachmentRef.attachment = 0;
-        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
 
-        VkSubpassDescription subpassDescription = {}; //make sure everything else init'd null or 0
+        VkFormat depthFormat=m_physicalDevices.GetSelectedDevice().m_depthFormat;
+
+        VkAttachmentDescription depthAttachment = {};
+        depthAttachment.format=depthFormat;
+        depthAttachment.samples=VK_SAMPLE_COUNT_1_BIT;
+        depthAttachment.loadOp=VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthAttachment.storeOp=VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.stencilLoadOp=VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        depthAttachment.stencilStoreOp=VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        depthAttachment.initialLayout=VK_IMAGE_LAYOUT_UNDEFINED;
+        depthAttachment.finalLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depthAttachmentReference={};
+        depthAttachmentReference.attachment=1;
+        depthAttachmentReference.layout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpassDescription = {}; 
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = 1;
         subpassDescription.pColorAttachments = &colorAttachmentRef;
+        subpassDescription.pDepthStencilAttachment =m_depthEnabled? &depthAttachmentReference:VK_NULL_HANDLE;
+
+        std::vector<VkAttachmentDescription> attachments;
+        attachments.push_back(colorAttachment);
+        if (m_depthEnabled){
+            attachments.push_back(depthAttachment);
+        }
 
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         renderPassInfo.pNext = VK_NULL_HANDLE;
-        renderPassInfo.attachmentCount = 1;
-        renderPassInfo.pAttachments = &colorAttachment;
+        renderPassInfo.attachmentCount = (uint32_t)attachments.size();
+        renderPassInfo.pAttachments = attachments.data();
         renderPassInfo.subpassCount = 1;
         renderPassInfo.pSubpasses = &subpassDescription;
 
@@ -830,26 +860,28 @@ namespace m4VK
         std::vector<VkFramebuffer> frameBuffers;
         frameBuffers.resize(m_swapChainImages.size());
 
-        int width = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.width;
-        int height = m_physicalDevices.GetSelectedDevice().m_surfaceCapabilities.currentExtent.height;
-
         VkFramebufferCreateInfo framebufferInfo = {};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
             framebufferInfo.pNext = VK_NULL_HANDLE;
             framebufferInfo.renderPass = renderPass;
-            framebufferInfo.attachmentCount = 1;
-            framebufferInfo.pAttachments = VK_NULL_HANDLE;
-            framebufferInfo.width = width;
-            framebufferInfo.height = height;
+            framebufferInfo.width = (uint32_t)m_windowWidth;
+            framebufferInfo.height = (uint32_t)m_windowHeight;
             framebufferInfo.layers = 1; 
 
         for (uint32_t i = 0; i < m_swapChainImages.size(); i++)
         {
-            framebufferInfo.pAttachments = &m_swapChainImageViews[i] ;
+            std::vector<VkImageView> attachments;
+            attachments.push_back(m_swapChainImageViews[i] );
+            if(m_depthEnabled){
+                attachments.push_back(m_depthImages[i].m_imageView);
+            }
+            
+            framebufferInfo.attachmentCount=attachments.size();
+            framebufferInfo.pAttachments = attachments.data();
 
             VkResult result = vkCreateFramebuffer(m_device, &framebufferInfo, VK_NULL_HANDLE, &frameBuffers[i]);
             CHECK_VK_RESULT(result, "vkCreateFramebuffer");
-            M4_LOG("Framebuffer[%d] Created Successfully",i);
+            M4_LOG("Framebuffer[%d] Created",i);
         }
         return frameBuffers;
     }
@@ -1005,6 +1037,26 @@ namespace m4VK
         M4_LOG("no type for type %x requested memory Properties %x", memoryTypeBits, requiredMemoryPropertyFlags);
         exit(1);
         return -1;
+    }
+
+
+    void VulkanCore::CreateDepthResources()
+    {
+        int swapChainImageCount=(int)m_swapChainImages.size();
+        m_depthImages.resize(swapChainImageCount);
+        VkFormat depthFormat=m_physicalDevices.GetSelectedDevice().m_depthFormat;
+
+        for (int i=0;i<swapChainImageCount;i++){
+            VkImageUsageFlagBits usage=VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            VkMemoryPropertyFlagBits propertyFlags= VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+            CreateImage(m_depthImages[i], m_windowWidth,m_windowHeight,depthFormat,usage, propertyFlags,false);
+            VkImageLayout oldLayout=VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageLayout newLayout=VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            TransitionImageLayout(m_depthImages[i].m_image,depthFormat,oldLayout,newLayout);
+
+            m_depthImages[i].m_imageView =CreateImageView(m_device, m_depthImages[i].m_image,depthFormat,VK_IMAGE_ASPECT_DEPTH_BIT,false);
+
+        }
     }
 
     void BufferAndMemory::Destroy(VkDevice device)

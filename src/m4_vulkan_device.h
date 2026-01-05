@@ -10,12 +10,13 @@ namespace m4VK {
         VkPhysicalDeviceProperties m_deviceProperties;
         VkPhysicalDeviceFeatures m_deviceFeatures;
         std::vector<VkQueueFamilyProperties> m_queueFamilyProperties;
-        // std::vector<VkExtensionProperties> m_ExtensionProperties;
+        std::vector<VkExtensionProperties> m_ExtensionProperties;
         std::vector<VkBool32> m_queueFamilySupportsPresent;
         std::vector<VkSurfaceFormatKHR> m_surfaceFormats;
         std::vector<VkPresentModeKHR> m_presentModes;
         VkSurfaceCapabilitiesKHR m_surfaceCapabilities;
         VkPhysicalDeviceMemoryProperties m_deviceMemoryProperties;
+        VkFormat m_depthFormat;
     };
 
     class VulkanPhysicalDevices {

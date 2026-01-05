@@ -9,7 +9,7 @@
 //std
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <array>
 //libs
 #define GLFW_INCLUDE_VULKAN
 #include <glfw3.h>
@@ -24,14 +24,6 @@
 #define FRAG_SHADER "../shaders/test.frag"
 
 #define APP_NAME "OGL_tutorial_17: uniform buffers"
-
-// GLFWwindow* window=NULL;
-
-// void GLFW_Key_Callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-// {
-//     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-//         glfwSetWindowShouldClose(window, GLFW_TRUE);
-// }
 
 
 class VulkanApp: public m4VK::GLFWCallbacks
@@ -60,7 +52,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
         void Init(const char* pAppName) 
         {
             m_pWindow=m4VK::glfw_vulkan_init(WINDOW_WIDTH,WINDOW_HEIGHT,pAppName);
-            m_vkCore.Init(pAppName, m_pWindow);
+            m_vkCore.Init(pAppName, m_pWindow,true);
             m_numSwapchainImages = m_vkCore.GetSwapchainImageCount();
             m_device=m_vkCore.GetDevice();
             m_pQueue = m_vkCore.GetQueue();
@@ -167,11 +159,17 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 Vertex({-0.5f,0.5f,0.0f},{1.0f,0.0f}),
                 Vertex({0.5f,-0.5f,0.0f},{0.0f,1.0f}),
                 Vertex({0.5f,0.5f,0.0f},{1.0f,1.0f}),
+                Vertex({-0.75f,-0.75f,10.0f},{0.0f,0.0f}),
+                Vertex({0.75f,-0.75f,10.0f},{0.0f,1.0f}),
+                Vertex({-0.75f,0.75f,10.0f},{1.0f,0.0f}),
+                Vertex({-0.75f,0.75f,10.0f},{1.0f,0.0f}),
+                Vertex({0.75f,-0.75f,10.0f},{0.0f,1.0f}),
+                Vertex({0.75f,0.75f,10.0f},{1.0f,1.0f}),
             };
 
             m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
             m_mesh.m_bam=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize );
-            
+            M4_LOG("CreateVertexBuffer(%d verts)",vertices.size());
 
         }
 
@@ -187,13 +185,13 @@ class VulkanApp: public m4VK::GLFWCallbacks
 
         void CreateUniformBuffers()
         {
-            m_vkCore.CreateUniformBuffers(sizeof(UniformData), m_uniformBuffers);//TODO: how to pass &m_uniformBuffers without lvalue complaints
+            m_vkCore.CreateUniformBuffers(sizeof(UniformData), m_uniformBuffers);
         }
 
         void DefaultCreateCameraPers()
         {
             float FOV=45.0f;
-            float zNear=0.1f;
+            float zNear=0.01f;
             float zFar=1000.0f;
 
             DefaultCreateCameraPers(FOV,zNear,zFar);
@@ -232,7 +230,6 @@ class VulkanApp: public m4VK::GLFWCallbacks
             M4_LOG("CreateCommandBuffers...");
         }
 
-
         void CreatePipeline(){
 
             m_pPipeline = new m4VK::GraphicsPipeline(
@@ -245,15 +242,16 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 m_numSwapchainImages,
                 m_uniformBuffers,
                 sizeof(UniformData),
-                false
+                true
             );
         }
 
         void RecordCommandBuffers()
         {
             VkClearColorValue clearColor = COLOR_BLACK;
-            VkClearValue clearValue;
-            clearValue.color = clearColor;
+            std::array<VkClearValue,2>clearValues{};
+            clearValues[0].color=clearColor;
+            clearValues[1].depthStencil={1.0f,0};
 
             VkRenderPassBeginInfo renderPassBeginInfo = {};
             renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -263,8 +261,8 @@ class VulkanApp: public m4VK::GLFWCallbacks
             renderPassBeginInfo.renderArea.offset.y = 0;
             renderPassBeginInfo.renderArea.extent.width = WINDOW_WIDTH;
             renderPassBeginInfo.renderArea.extent.height = WINDOW_HEIGHT;
-            renderPassBeginInfo.clearValueCount = 1;
-            renderPassBeginInfo.pClearValues = &clearValue;
+            renderPassBeginInfo.clearValueCount =2;
+            renderPassBeginInfo.pClearValues = clearValues.data();
 
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -275,7 +273,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
 
             for (uint32_t i = 0; i < m_commandBuffers.size(); i++)
             {
-
+                // BeginCommandBuffer()
                 VkCommandBufferBeginInfo beginInfo = {};
                 beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
                 beginInfo.pNext = VK_NULL_HANDLE;

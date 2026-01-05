@@ -41,7 +41,7 @@ namespace m4VK
             VulkanCore();
             ~VulkanCore();
 
-            void Init(const char* pAppName, GLFWwindow* pWindow);
+            void Init(const char* pAppName, GLFWwindow* pWindow,bool depthEnabled);
             int GetSwapchainImageCount() const { return (int)m_swapChainImages.size(); }
             VkDevice GetDevice() const { return m_device; }//?need const?
             VkImage GetSwapchainImage(uint32_t imageIndex) const { return m_swapChainImages[imageIndex]; }
@@ -55,7 +55,7 @@ namespace m4VK
             void CreateUniformBuffers(size_t size, std::vector<BufferAndMemory>&buffers);
             void GetFrameBufferSize(int&width, int& height)const;
             void CreateTexture(const char* pFilename, VulkanTexture& texture);
-
+            void CreateDepthResources();
         private:
             void CreateInstance(const char* pAppName);
             void CreateDebugCallback();
@@ -87,9 +87,13 @@ namespace m4VK
             VkSwapchainKHR m_swapChain   = VK_NULL_HANDLE;
             std::vector<VkImage> m_swapChainImages; 
             std::vector<VkImageView> m_swapChainImageViews;
+            std::vector<VulkanTexture> m_depthImages; 
             VkCommandPool m_commandBufferPool = VK_NULL_HANDLE;
             VulkanQueue m_queue;
             VkCommandBuffer m_copyCommandBuffer;
+            bool m_depthEnabled;
+            int m_windowWidth=0;
+            int m_windowHeight=0;
     
     };
 

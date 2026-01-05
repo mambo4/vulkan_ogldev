@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <cstdlib>
 #include <string>
+#include <vector>
 
 
 #define CHECK_VK_RESULT(value, message) if (value != VK_SUCCESS) {\
@@ -25,4 +26,6 @@ namespace m4VK {
     void writeFileBinary(const char* pFilename, const void* pData, int size);
     int GetBytesPerPixel(VkFormat format);
 
+    bool HasStencilComponent(VkFormat format);
+    VkFormat FindSupportedFormat(VkPhysicalDevice device, const std::vector<VkFormat>& candidates,VkImageTiling tiling,VkFormatFeatureFlags features);
 }

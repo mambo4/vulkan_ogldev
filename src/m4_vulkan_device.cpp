@@ -1,5 +1,6 @@
 #include "m4_vulkan_device.h"
 #include "m4_vulkan_core.h"
+#include "m4_vulkan_utils.h"
 //std
 #include <assert.h>
 
@@ -65,6 +66,22 @@ namespace m4VK {
         }
     }
 
+
+    static VkFormat FindDepthFormat(VkPhysicalDevice device)
+    {
+        std::vector<VkFormat> candidates={
+            VK_FORMAT_D32_SFLOAT,
+            VK_FORMAT_D32_SFLOAT_S8_UINT,
+            VK_FORMAT_D24_UNORM_S8_UINT};
+        
+        VkFormat depthFormat=FindSupportedFormat(
+            device,
+            candidates,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+        
+        return depthFormat;   
+    }
 
     void VulkanPhysicalDevices::Init(const VkInstance& instance, const VkSurfaceKHR& surface){
 
@@ -160,6 +177,8 @@ namespace m4VK {
             printf("\n");
 
             vkGetPhysicalDeviceFeatures(physicalDevice, &m_physicalDevices[i].m_deviceFeatures);
+
+            m_physicalDevices[i].m_depthFormat=FindDepthFormat(physicalDevice);
         }
         // exit(0);
     }

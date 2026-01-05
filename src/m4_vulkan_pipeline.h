@@ -21,8 +21,7 @@ namespace m4VK{
                 int imageCount,
                 std::vector<BufferAndMemory>& uniformBuffers,
                 int uniformDataSize,
-                bool DepthEnabled
-            );
+                bool DepthEnabled);
 
             ~GraphicsPipeline();
             
