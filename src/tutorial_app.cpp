@@ -142,7 +142,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
 
             struct Vertex
             {
-                Vertex(const glm::vec3&p, const glm::vec2 t)
+                Vertex(const glm::vec3& p, const glm::vec2& t)
                 {
                     pos=p;
                     uv=t;
@@ -153,21 +153,19 @@ class VulkanApp: public m4VK::GLFWCallbacks
             };
 
             std::vector<Vertex>vertices ={
-                Vertex({-0.5f,-0.5f,0.0f},{0.0f,0.0f}),
-                Vertex({0.5f,-0.5f,0.0f},{0.0f,1.0f}),
-                Vertex({-0.5f,0.5f,0.0f},{1.0f,0.0f}),
-                Vertex({-0.5f,0.5f,0.0f},{1.0f,0.0f}),
-                Vertex({0.5f,-0.5f,0.0f},{0.0f,1.0f}),
-                Vertex({0.5f,0.5f,0.0f},{1.0f,1.0f}),
-                Vertex({-0.75f,-0.75f,10.0f},{0.0f,0.0f}),
-                Vertex({0.75f,-0.75f,10.0f},{0.0f,1.0f}),
-                Vertex({-0.75f,0.75f,10.0f},{1.0f,0.0f}),
-                Vertex({-0.75f,0.75f,10.0f},{1.0f,0.0f}),
-                Vertex({0.75f,-0.75f,10.0f},{0.0f,1.0f}),
-                Vertex({0.75f,0.75f,10.0f},{1.0f,1.0f}),
+			Vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}),	// Bottom left
+			Vertex({-1.0f, 1.0f, 0.0f},  {0.0f, 1.0f}), // Top left
+			Vertex({1.0f,  1.0f, 0.0f},  {1.0f, 1.0f}), // Top right
+			Vertex({-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f}), // Bottom left
+			Vertex({1.0f, 1.0f, 0.0f},   {1.0f, 1.0f}), // Top right
+			Vertex({1.0f,  -1.0f, 0.0f}, {1.0f, 0.0f}), // Bottom right
+			Vertex({-1.0f, -1.0f, 5.0f}, {0.0f, 0.0f}), // Bottom left
+			Vertex({-1.0f, 1.0f, 5.0f},  {0.0f, 1.0f}), // Top left
+			Vertex({1.0f,  1.0f, 5.0f},  {1.0f, 1.0f})  // Top right
             };
-
-            m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertices.size();
+            uint32_t vertCount=vertices.size();
+            m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertCount;
+            m_mesh.vertCount=vertCount;
             m_mesh.m_bam=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize );
             M4_LOG("CreateVertexBuffer(%d verts)",vertices.size());
 
@@ -288,7 +286,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
                 
                 m_pPipeline->bind(m_commandBuffers[i],i);
 
-                 uint32_t vertCount =6;
+                 uint32_t vertCount =m_mesh.vertCount;
                  uint32_t instanceCount=1;
                  uint32_t firstVertex=0;
                  uint32_t firstInstance=0;

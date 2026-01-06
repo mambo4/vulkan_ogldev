@@ -13,7 +13,7 @@ namespace m4VK {
         BufferAndMemory m_bam;
         size_t m_vertexBufferSize = 0;
         VulkanTexture* m_pTexture=NULL;
-        
+        uint32_t vertCount=0;
         void Destroy(VkDevice device)
         {
             m_bam.Destroy(device);
