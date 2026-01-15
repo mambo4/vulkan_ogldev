@@ -11,7 +11,11 @@
                "${workspaceFolder}/lib/glm",
                "${workspaceFolder}/lib/tinyobjloader",
                "${workspaceFolder}/lib/stb",
-               "${env:VULKAN_SDK}/Include"
+               "${env:VULKAN_SDK}/Include",
+               "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+               "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+               "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared",
+               "C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um"
             ],
             "defines": [
                 "_WIN32",

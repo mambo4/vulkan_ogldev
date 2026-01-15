@@ -167,7 +167,7 @@ class VulkanApp: public m4VK::GLFWCallbacks
             m_mesh.m_vertexBufferSize=sizeof(vertices[0])*vertCount;
             m_mesh.vertCount=vertCount;
             m_mesh.m_bam=m_vkCore.CreateVertexBuffer(vertices.data(),m_mesh.m_vertexBufferSize );
-            M4_LOG("CreateVertexBuffer(%d verts)",vertices.size());
+            M4_LOG("CreateVertexBuffer(%d verts)",(int)vertices.size());
 
         }
 

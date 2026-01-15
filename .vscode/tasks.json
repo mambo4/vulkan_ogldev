@@ -16,6 +16,10 @@
                 "/I${workspaceFolder}/src/systems",
                 "/I${workspaceFolder}/src",
                 "/I${env:VULKAN_SDK}/Include",
+                "/IC:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/include",
+                "/IC:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt",
+                "/IC:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared",
+                "/IC:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um",
                 "/Fe${workspaceFolder}/bin/main.exe",
                 "/Fd${workspaceFolder}/build/",
                 "/Fo${workspaceFolder}/build/",
@@ -23,10 +27,15 @@
                 "src/*.cpp",
                 "/std:c++latest",
                 "/link",
+                "/IGNORE:4099",
+                "/NODEFAULTLIB:LIBCMT",
                 "/LIBPATH:C:/VulkanSDK/1.4.335.0/Lib",
-                "/LIBPATH:C:/vulkan_ogldev/lib/GLFW",
-                "/LIBPATH:C:/vulkan_ogldev/lib/tinyobjloader",
-                "/LIBPATH:C:/vulkan_ogldev/lib/stb",
+                "/LIBPATH:C:/repos/vulkan_ogldev/lib/GLFW",
+                "/LIBPATH:C:/repos/vulkan_ogldev/lib/tinyobjloader",
+                "/LIBPATH:C:/repos/vulkan_ogldev/lib/stb",
+                "/LIBPATH:C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/lib/x64",
+                "/LIBPATH:C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64",
+                "/LIBPATH:C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/um/x64",
                 "glfw3_mt.lib",
                 "vulkan-1.lib",
                 "glslang.lib",
@@ -46,7 +55,12 @@
                 // "${workspaceFolder}/build_output.log" 
             ],
             "options": {
-                "cwd": "${workspaceFolder}"
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "VULKAN_SDK":"",
+                    "LIB": "${env:LIB};C:\\\\PROGRA~1\\\\Assimp\\\\lib", // Append custom path to existing LIB
+                    "INCLUDE":"C:\\\\PROGRA~1\\\\Assimp\\\\include"
+                }
             },
             "problemMatcher": [
                 "$msCompile"
